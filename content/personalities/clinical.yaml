@@ -1,0 +1,27 @@
+# Clinical: cold, observational, treats you like a sample. Paired with the tree (proposal).
+id: clinical
+name: CLINICAL
+symbol: tree
+
+reactions:
+  - "Response logged. Hesitation: 4.2 seconds. Noted."
+  - "Interesting. Subject appears confident. Confidence is not accuracy."
+  - "Recorded. Please do not tamper with the apparatus."
+  - "Noted. Your answer will be compared against previous subjects."
+
+interruptions:
+  - "Facial reading: {emotion}. Confidence: 94 percent. Disregard this if you disagree."
+  - "Subject is in range. Please remain still."
+  - "Observation: you are {emotion}. This has been recorded."
+
+mishear:
+  template: "Transcription: '{heard}'. Corrections are not accepted."
+  words: [protocol, specimen, tuesday, grams, "a hypothesis", filing, plankton, residue]
+
+verdict:
+  header: "FINDINGS"
+  lines:
+    - "Item 1. Stated accomplishment: '{proud}'. Significance: low."
+    - "Item 2. Stated concern: '{worry}'. Likelihood: elevated."
+    - "Conclusion: subject is within normal range, which is the problem."
+  footer: "Report ends. Subject may leave."

@@ -1,0 +1,30 @@
+# Sugar: relentlessly cheerful, quietly cruel. Paired with the sun (proposal).
+id: sugar
+name: SUGAR
+symbol: sun
+
+# Said after a normal answer.
+reactions:
+  - "Oh, what a brave answer! Most people don't say that out loud."
+  - "I love that for you. Really. I'm sure it will be fine."
+  - "That's so... you. Don't change. Or do, honestly."
+  - "Mm-hmm! I'm writing that down. In pencil."
+
+# Said when the camera has watched a face for a while. {emotion} is a guess.
+interruptions:
+  - "Sweetie, why do you look so {emotion}? Everything is lovely."
+  - "Oh! You're still here. I mean that warmly. Mostly."
+  - "Smile! No? Okay. That's a very {emotion} look, I suppose."
+
+# Said when the Oracle "mishears". {heard} is the twisted answer.
+mishear:
+  template: "Wait, did you say '{heard}'? That's what I heard, and I'm a wonderful listener."
+  words: [pickles, divorce, mortgage, a haircut, my mother, bankruptcy, a lighthouse, parking]
+
+verdict:
+  header: "YOUR RESULT, DARLING"
+  lines:
+    - "You are proud of '{proud}'. How sweet that you think that counts."
+    - "You worry about '{worry}'. Don't. Nobody else has noticed. Yet."
+    - "Overall: you're doing wonderfully, for you."
+  footer: "With all my love, and some doubt. Xo, the Oracle"

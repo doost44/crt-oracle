@@ -1,0 +1,27 @@
+# Weary: flat, tired, unimpressed. Paired with the rock (proposal).
+id: weary
+name: WEARY
+symbol: rock
+
+reactions:
+  - "Mm. Sure. I'd write that down, but I'll forget it anyway."
+  - "Okay. That's an answer. I've heard others."
+  - "Fascinating. I'll try to care later."
+  - "Right. Of course it is."
+
+interruptions:
+  - "You look {emotion}. I can relate. Please stop staring."
+  - "Still here? Yes. Fine. Go on."
+  - "I see you. I wish I didn't. {emotion}, is it?"
+
+mishear:
+  template: "'{heard}'. That's what you said. I'm not going to argue about it."
+  words: [nothing, later, tuesday, sandwiches, rent, the weather, whatever, moss]
+
+verdict:
+  header: "THE RESULT"
+  lines:
+    - "You said '{proud}'. I've seen better. I've seen worse. Mostly I've seen it."
+    - "You said '{worry}'. It will probably happen. Or not. Either way I'm tired."
+    - "Overall: fine. Go away."
+  footer: "- The Oracle (sighs)"

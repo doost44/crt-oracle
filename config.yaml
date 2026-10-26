@@ -1,0 +1,31 @@
+# CRT Oracle settings. Every value here has a default in oracle/config.py,
+# so you can delete anything you don't want to change.
+
+story:
+  path: content/story.yaml
+  personalities_dir: content/personalities
+  art_dir: content/art
+  # Chance (0 to 1) that the Oracle "mishears" a typed answer.
+  mishear_rate: 0.25
+
+display:
+  backend: console        # console now; "crt" (full-screen) is planned
+  cols: 80
+  rows: 24
+  typewriter_delay: 0.02  # seconds per character
+  color: green            # green | amber | none
+
+camera:
+  backend: mock           # mock | opencv
+  device_index: 0         # which camera OpenCV opens (see tools/list_cameras.py)
+
+face:
+  enabled: true
+  min_face_seconds: 4.0   # a face must be in view this long before an interruption
+  min_gap_seconds: 20.0   # minimum time between interruptions
+
+printer:
+  backend: file           # file | lp
+  width: 32               # characters per line on the receipt
+  out_dir: out            # where "file" receipts are written
+  lp_destination: ""      # printer name for the "lp" backend
