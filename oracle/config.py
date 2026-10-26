@@ -21,7 +21,17 @@ DEFAULTS: dict = {
         "typewriter_delay": 0.02,
         "color": "green",
     },
-    "camera": {"backend": "mock", "device_index": 0},
+    # backend stays "mock" here so tests and --demo never need a camera;
+    # config.yaml switches it to "opencv" for the real thing.
+    "camera": {
+        "backend": "mock",
+        "device_index": 0,
+        "api": "auto",  # auto | dshow | msmf | avfoundation | v4l2 | any
+        "preview": "feed",  # feed | box | off
+        "detect_fps": 10.0,  # face detections per second on the live feed
+        "detect_width": 640,  # shrink wider frames to this before detecting (0 = never)
+        "min_face_size": 60,  # smallest face worth noticing, in camera pixels
+    },
     "face": {"enabled": True, "min_face_seconds": 4.0, "min_gap_seconds": 20.0},
     "printer": {
         "backend": "file",

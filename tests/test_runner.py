@@ -34,21 +34,21 @@ def _run(make_session, root, tmp_path, lines, detector=None, clock=None, mishear
 
 
 def test_full_run_prints_a_receipt(make_session, root, tmp_path):
-    output, path = _run(make_session, root, tmp_path, ["2", "my bike", "my job", "", "", ""])
+    output, path = _run(make_session, root, tmp_path, ["2", "my bike", "my job", "a nap", "", "", ""])
     assert "Welcome" in output
     assert "RECEIPT IS PRINTING" in output
     assert "WEARY" in open(path).read()
 
 
 def test_invalid_menu_choice_is_asked_again(make_session, root, tmp_path):
-    output, _ = _run(make_session, root, tmp_path, ["9", "x", "1", "a", "b", "", "", ""])
+    output, _ = _run(make_session, root, tmp_path, ["9", "x", "1", "a", "b", "c", "", "", ""])
     assert output.count("NOT AN OPTION") == 2
 
 
 def test_face_triggers_interruption_before_verdict(make_session, root, tmp_path):
     ticks = iter(range(0, 100, 3))
     output, _ = _run(
-        make_session, root, tmp_path, ["1", "a", "b", "", "", ""],
+        make_session, root, tmp_path, ["1", "a", "b", "c", "", "", ""],
         detector=MockDetector([True]), clock=lambda: next(ticks),
     )
     # At least one of Sugar's (sun) interruption lines appears, whatever {emotion} became

@@ -8,11 +8,15 @@ This is the starter repo: the story engine, three personalities, the camera and 
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"          # add ,camera for OpenCV (see below)
-python -m pytest                 # 26 tests, no hardware needed
+pip install -e ".[dev,camera]"   # camera = OpenCV, for the webcam
+python -m pytest                 # no hardware needed
 python -m oracle --demo          # scripted run: prints a receipt into out/
-python -m oracle                 # play it yourself in the terminal
+python -m oracle --camera-check  # webcam with face boxes, no story (q quits)
+python -m oracle                 # play it yourself, watched by the webcam
+python -m oracle --no-camera     # play it without a webcam
 ```
+
+Step-by-step for macOS and Windows, and what to expect: [docs/RUN_ON_LAPTOP.md](docs/RUN_ON_LAPTOP.md).
 
 Requires Python 3.10 or newer.
 
@@ -29,6 +33,7 @@ oracle/
   display.py       ConsoleDisplay (typewriter text, ASCII art, menus)
   inputs.py        KeyboardInput, ScriptedInput, SpeechInput (placeholder)
   interrupter.py   rules for when the Oracle interrupts a watched face
+  live.py          live webcam: background watcher, face-box preview window
   receipt.py       receipt formatting + printers (file, lp)
   camera/          MockCamera/MockDetector, plus OpenCV camera and face detector
 content/
@@ -45,7 +50,7 @@ Everything the visitor reads lives in `content/` as plain text, so you can chang
 
 ### Writing the story
 
-Node types (details in `oracle/story.py`): `say`, `choice`, `ask`, `mash` (press Enter N times) and `end`. Text can insert earlier answers as `{proud}` or `{worry}`, and can vary by personality:
+Node types (details in `oracle/story.py`): `say`, `choice`, `ask`, `mash` (press Enter N times) and `end`. Text can insert earlier answers as `{proud}`, `{worry}` or `{wish}`, and can vary by personality:
 
 ```yaml
 wake:
@@ -59,13 +64,14 @@ wake:
 
 ### The three personalities
 
-Proposed pairing, easy to change in `story.yaml`: **sun = Sugar** (cheerful, cruel), **rock = Weary** (flat, tired), **tree = Clinical** (cold, lab-report). Each personality file holds its reactions, interruptions, mishearing words and receipt text.
+Proposed pairing, easy to change in `story.yaml`: **sun = Sugar** (cheerful, cruel), **rock = Weary** (flat, tired), **tree = Clinical** (cold, lab-report). Each personality file holds its reactions, interruptions, mishearing words and receipt text. What sets them apart: [docs/PERSONALITIES.md](docs/PERSONALITIES.md). The questions are all placeholders for now: [docs/QUESTIONS.md](docs/QUESTIONS.md).
 
 ### Mishearing and interruptions
 
 - `story.mishear_rate` in `config.yaml` is the chance the Oracle swaps one word of a typed answer. The visitor's real answer is kept; the receipt shows what the Oracle "heard".
 - With a face in view for `min_face_seconds`, and at least `min_gap_seconds` since the last one, the Oracle interrupts with a line from its personality. The emotion shown is a deliberately unreliable guess. Interruptions never fire during the verdict.
-- In the console build, interruptions are checked **between** story steps. Interrupting in the middle of a sentence needs the real-time display (milestone 3).
+- With the webcam (`camera.backend: opencv`), `oracle/live.py` watches the camera in a background thread, so the Oracle interrupts as soon as the rules allow, even while the visitor is typing. A preview window shows the face box (`camera.preview: feed`, `box` for boxes on black, or `off`). Frames are never saved; `tests/test_camera_privacy.py` guards that.
+- With `--no-camera` or `--demo`, interruptions are checked **between** story steps.
 
 ## Adding the hardware
 

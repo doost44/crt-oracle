@@ -16,8 +16,17 @@ display:
   color: green            # green | amber | none
 
 camera:
-  backend: mock           # mock | opencv
-  device_index: 0         # which camera OpenCV opens (see tools/list_cameras.py)
+  backend: opencv         # opencv (a real camera) | mock (no camera; or run with --no-camera)
+  device_index: 0         # which camera OpenCV opens: 0 is usually the built-in webcam
+                          # (see tools/list_cameras.py; the capture adapter is often 1)
+  api: auto               # auto | dshow | msmf | avfoundation | v4l2 | any
+                          # auto = dshow on Windows, avfoundation on macOS
+  preview: feed           # operator window: feed (webcam + face boxes) | box (face boxes
+                          # on black, no image of the visitor) | off
+  detect_fps: 10          # face detections per second
+  detect_width: 640       # shrink wider frames to this before detecting (0 = never)
+  min_face_size: 60       # ignore faces smaller than this, in camera pixels
+  # Frames are never saved: only the latest one is held in memory, for the preview.
 
 face:
   enabled: true
