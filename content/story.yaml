@@ -1,0 +1,83 @@
+# The story graph. Edit the words freely; keep the node names and "next" links consistent.
+# Run `python -m pytest` after editing to catch broken links.
+#
+# Node types: say, choice, ask, mash, end   (see oracle/story.py)
+# Text can use {key} to insert an earlier answer (as the Oracle "heard" it).
+# Text can also be a dict by personality: {default: "...", sugar: "...", weary: "..."}
+#
+# All questions below are PLACEHOLDERS. Replace them with yours.
+
+start: welcome
+
+nodes:
+  welcome:
+    type: say
+    text: "Welcome. I have been expecting someone. Not necessarily you."
+    next: pick_symbol
+
+  pick_symbol:
+    type: choice
+    text: "Choose a symbol. Choose carefully. Or don't. I'll know either way."
+    options:
+      - label: "A sun"
+        art: sun
+        personality: sugar
+        next: sun_q1
+      - label: "A rock"
+        art: rock
+        personality: weary
+        next: rock_q1
+      - label: "A tree"
+        art: tree
+        personality: clinical
+        next: tree_q1
+
+  # --- sun branch -----------------------------------------------------
+  sun_q1:
+    type: ask
+    key: proud
+    text: "PLACEHOLDER (sun 1): Tell me something you are proud of."
+    next: sun_q2
+  sun_q2:
+    type: ask
+    key: worry
+    text: "PLACEHOLDER (sun 2): And something you worry about?"
+    next: wake
+
+  # --- rock branch ----------------------------------------------------
+  rock_q1:
+    type: ask
+    key: proud
+    text: "PLACEHOLDER (rock 1): Name one thing you finished recently."
+    next: rock_q2
+  rock_q2:
+    type: ask
+    key: worry
+    text: "PLACEHOLDER (rock 2): Name one thing you keep putting off."
+    next: wake
+
+  # --- tree branch ----------------------------------------------------
+  tree_q1:
+    type: ask
+    key: proud
+    text: "PLACEHOLDER (tree 1): State one accomplishment, for the record."
+    next: tree_q2
+  tree_q2:
+    type: ask
+    key: worry
+    text: "PLACEHOLDER (tree 2): State one concern, for the record."
+    next: wake
+
+  # --- keyboard moment, shared ----------------------------------------
+  wake:
+    type: mash
+    count: 3
+    text:
+      default: "I have gone quiet. Press Enter three times to wake me."
+      sugar: "I'm just resting my eyes! Press Enter three times, sweetie."
+      weary: "I was asleep. Press Enter three times. Not that it matters."
+      clinical: "Unit idle. Press Enter three times to resume."
+    next: verdict
+
+  verdict:
+    type: end
