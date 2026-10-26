@@ -6,6 +6,7 @@ from oracle.camera import MockCamera, MockDetector
 from oracle.display import ConsoleDisplay
 from oracle.inputs import ScriptedInput
 from oracle.interrupter import Interrupter
+from oracle.personalities import load_personalities
 from oracle.receipt import FileReceiptPrinter
 from oracle.runner import run_session
 
@@ -50,8 +51,10 @@ def test_face_triggers_interruption_before_verdict(make_session, root, tmp_path)
         make_session, root, tmp_path, ["1", "a", "b", "", "", ""],
         detector=MockDetector([True]), clock=lambda: next(ticks),
     )
-    # At least one sun-flavoured interruption line appears
-    assert any(w in output for w in ("Sweetie", "Smile!", "still here"))
+    # At least one of Sugar's (sun) interruption lines appears, whatever {emotion} became
+    sugar = load_personalities(root / "content" / "personalities")["sugar"]
+    stems = [line.split("{")[0].strip() for line in sugar.interruptions]
+    assert any(stem and stem in output for stem in stems)
 
 
 def test_script_running_out_raises(make_session, root, tmp_path):
