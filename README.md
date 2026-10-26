@@ -38,6 +38,7 @@ content/
 tests/             pytest suite
 tools/list_cameras.py   finds the capture adapter's camera index
 docs/PLAN.md       the project plan
+docs/WINDOWS_SETUP.md  installing and running on the Windows laptop
 ```
 
 Everything the visitor reads lives in `content/` as plain text, so you can change the writing without touching Python. After editing `story.yaml`, run `python -m pytest`: it catches broken `next:` links.
