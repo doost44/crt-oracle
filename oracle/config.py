@@ -20,6 +20,13 @@ DEFAULTS: dict = {
         "rows": 24,
         "typewriter_delay": 0.02,
         "color": "green",
+        # Settings for the "crt" backend only:
+        "fullscreen": True,
+        "window": [1024, 768],
+        "font": "",
+        "scanlines": True,
+        "glow": True,
+        "flicker": 0.03,
     },
     "camera": {"backend": "mock", "device_index": 0},
     "face": {"enabled": True, "min_face_seconds": 4.0, "min_gap_seconds": 20.0},

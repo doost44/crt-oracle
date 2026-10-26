@@ -1,4 +1,4 @@
-"""Displays. ConsoleDisplay prints to a terminal; a full-screen CRT display comes later."""
+"""Displays. ConsoleDisplay prints to a terminal; the full-screen CRT display is in crt.py."""
 
 from __future__ import annotations
 
@@ -62,6 +62,10 @@ def load_art(art_dir: str | Path, name: str) -> str:
     return (Path(art_dir) / f"{name}.txt").read_text(encoding="utf-8")
 
 
-def make_display(cfg: dict) -> ConsoleDisplay:
+def make_display(cfg: dict):
     d = cfg["display"]
+    if d["backend"] == "crt":
+        from oracle.crt import make_crt_display
+
+        return make_crt_display(cfg)
     return ConsoleDisplay(cols=d["cols"], typewriter_delay=d["typewriter_delay"], color=d["color"])

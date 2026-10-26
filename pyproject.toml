@@ -8,6 +8,8 @@ dependencies = ["pyyaml>=6.0"]
 [project.optional-dependencies]
 # Pinned below 5: OpenCV 5 dropped the classic face detector this repo uses.
 camera = ["opencv-python>=4.8,<5", "numpy"]
+# Full-screen CRT display.
+crt = ["pygame>=2.5"]
 dev = ["pytest>=7"]
 
 [tool.setuptools.packages.find]

@@ -19,13 +19,21 @@ def _read_choice(display, inputs, count: int) -> int:
         display.say("THAT WAS NOT AN OPTION. I WILL ASK AGAIN.")
 
 
-def _poll_camera(session, display, camera, detector, interrupter, clock) -> None:
-    """Between nodes, check the camera and interrupt the visitor if the rules say so."""
+def _camera_line(session, camera, detector, interrupter, clock) -> str | None:
+    """Check the camera. Returns an interruption line if the rules say the Oracle should speak."""
     if not (camera and detector and interrupter) or session.personality is None:
-        return
+        return None
     faces = detector.detect(camera.read())
     if interrupter.update(clock(), len(faces)):
-        display.say(session.interruption(loose_emotion(session.rng)))
+        return session.interruption(loose_emotion(session.rng))
+    return None
+
+
+def _poll_camera(session, display, camera, detector, interrupter, clock) -> None:
+    """Between nodes, check the camera and interrupt the visitor if the rules say so."""
+    line = _camera_line(session, camera, detector, interrupter, clock)
+    if line:
+        display.say(line)
 
 
 def run_session(
@@ -41,10 +49,17 @@ def run_session(
     receipt_width: int = 32,
 ) -> str:
     """Play the story. Returns whatever the printer returns (a file path, for the file printer)."""
+    if hasattr(display, "set_interrupt_hook"):
+        # The CRT display checks the camera while it types, so it can interrupt mid-sentence.
+        display.set_interrupt_hook(
+            lambda: _camera_line(session, camera, detector, interrupter, clock)
+        )
     while True:
         node = session.node
         if node.type != "end":
             _poll_camera(session, display, camera, detector, interrupter, clock)
+        if node.glitch and hasattr(display, "glitch"):
+            display.glitch()
 
         if node.type == "say":
             display.say(session.text())
