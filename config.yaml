@@ -25,7 +25,9 @@ camera:
                           # on black, no image of the visitor) | off
   detect_fps: 10          # face detections per second
   detect_width: 640       # shrink wider frames to this before detecting (0 = never)
-  min_face_size: 60       # ignore faces smaller than this, in camera pixels
+  min_face_size: 40       # ignore faces smaller than this, in camera pixels
+  detector: yunet         # yunet (neural-net model, handles angles and dim light) | haar (old)
+  score_threshold: 0.6    # yunet only: lower (e.g. 0.4) finds more faces, and more false ones
   # Frames are never saved: only the latest one is held in memory, for the preview.
 
 face:

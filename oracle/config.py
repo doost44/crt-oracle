@@ -30,7 +30,9 @@ DEFAULTS: dict = {
         "preview": "feed",  # feed | box | off
         "detect_fps": 10.0,  # face detections per second on the live feed
         "detect_width": 640,  # shrink wider frames to this before detecting (0 = never)
-        "min_face_size": 60,  # smallest face worth noticing, in camera pixels
+        "min_face_size": 40,  # smallest face worth noticing, in camera pixels
+        "detector": "yunet",  # yunet (neural net, better) | haar (the old classic)
+        "score_threshold": 0.6,  # yunet only: lower finds more faces, and more false ones
     },
     "face": {"enabled": True, "min_face_seconds": 4.0, "min_gap_seconds": 20.0},
     "printer": {

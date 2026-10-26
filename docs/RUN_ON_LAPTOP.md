@@ -54,6 +54,7 @@ Every new terminal: `cd crt-oracle` and activate the venv again (`source .venv/b
 | `python -m oracle --preview off` | No window at all; interruptions still work |
 | `python -m oracle --no-camera` | Play without a webcam |
 | `python -m oracle --seed 3` | Same mishearings and lines every time |
+| `camera.detector: haar` in `config.yaml` | Switch back to the old detector (the default `yunet` finds tilted, dim and distant faces much better) |
 | `python tools/list_cameras.py` | List camera indexes (when the capture adapter arrives) |
 
 Timings live in `config.yaml` under `face:` (`min_face_seconds`, `min_gap_seconds`); camera settings under `camera:`. Press q or Esc in the preview window to hide it; Ctrl+C in the terminal stops everything and releases the camera.

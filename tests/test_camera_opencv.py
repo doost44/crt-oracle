@@ -5,7 +5,13 @@ import pytest
 
 from oracle.camera import make_camera_and_detector
 from oracle.camera.base import CameraOpenError, FaceBox
-from oracle.camera.opencv_backend import HaarFaceDetector, OpenCVCamera, api_candidates
+from oracle.camera.opencv_backend import (
+    HaarFaceDetector,
+    OpenCVCamera,
+    YuNetFaceDetector,
+    api_candidates,
+    make_face_detector,
+)
 
 
 def test_api_auto_per_platform():
@@ -121,3 +127,43 @@ def test_factory_passes_camera_settings():
     camera, detector = make_camera_and_detector(cfg)
     assert (camera.device_index, camera.api) == (2, "msmf")
     assert (detector.detect_width, detector.min_face_size) == (320, 40)
+    assert isinstance(detector, YuNetFaceDetector)  # the default detector
+
+
+class FakeYuNet:
+    def __init__(self, rows):
+        self.rows = rows
+        self.sizes = []
+
+    def setInputSize(self, size):
+        self.sizes.append(size)
+
+    def detect(self, frame):
+        return 1, (np.array(self.rows, np.float32) if self.rows else None)
+
+
+def test_yunet_maps_boxes_back_and_drops_tiny_faces():
+    detector = YuNetFaceDetector(detect_width=640, min_face_size=40)
+    # YuNet rows: x, y, w, h, 10 landmark values, score
+    detector._net = FakeYuNet([[100, 50, 40, 44] + [0] * 10 + [0.9], [5, 5, 10, 10] + [0] * 10 + [0.7]])
+    boxes = detector.detect(np.zeros((720, 1280, 3), np.uint8))  # detected at half size
+    assert detector._net.sizes == [(640, 360)]
+    assert boxes == [FaceBox(200, 100, 80, 88)]
+
+
+def test_yunet_handles_no_faces_and_grey_frames():
+    detector = YuNetFaceDetector()
+    detector._net = FakeYuNet([])
+    assert detector.detect(np.zeros((480, 640), np.uint8)) == []
+    assert detector.detect(None) == []
+
+
+def test_real_yunet_model_runs_on_a_blank_frame():
+    assert YuNetFaceDetector().detect(np.zeros((480, 640, 3), np.uint8)) == []
+
+
+def test_detector_setting_picks_haar_or_yunet():
+    assert isinstance(make_face_detector({"detector": "haar"}), HaarFaceDetector)
+    assert isinstance(make_face_detector({}), YuNetFaceDetector)
+    with pytest.raises(ValueError):
+        make_face_detector({"detector": "magic"})

@@ -8,13 +8,11 @@ def make_camera_and_detector(cfg: dict):
     """Build (camera, detector) for the configured backend."""
     cam = cfg["camera"]
     if cam["backend"] == "opencv":
-        from oracle.camera.opencv_backend import HaarFaceDetector, OpenCVCamera
+        from oracle.camera.opencv_backend import OpenCVCamera, make_face_detector
 
         return (
             OpenCVCamera(cam["device_index"], api=cam.get("api", "auto")),
-            HaarFaceDetector(
-                detect_width=cam.get("detect_width", 640), min_face_size=cam.get("min_face_size", 60)
-            ),
+            make_face_detector(cam),
         )
     return MockCamera(), MockDetector()
 
