@@ -1,0 +1,136 @@
+/* The console look (talk-console.html, readout-console.html): an old computer's
+ * plain console text, blue on a white tube, like a VCR's on-screen menu. Loaded
+ * last. The strange space of tiny glyphs over the page is console.js's canvas
+ * (.glyph-field); theme.js supplies the colours (--fg is the blue, --dim the pale
+ * blue, --orange the speaking mask's own); console.js keeps --decay up to date. */
+
+:root {
+  --console: VT323, "DejaVu Sans Mono", Consolas, "Lucida Console", monospace;
+  --type: clamp(17px, 2.6vh, 26px); /* one size of text for nearly everything, like a menu on a TV */
+  --decay: 0;
+  /* The tube: the blue's colours a little out of register, and a soft glow. */
+  --fringe: 1px 0 rgba(255, 40, 90, 0.28), -1px 0 rgba(0, 180, 255, 0.32), 0 0 3px rgba(20, 20, 230, 0.28);
+}
+
+html, body { background: #fff; }
+body { font-family: var(--console); }
+
+#screen, .glyph-field {
+  filter: drop-shadow(1px 0 0 rgba(255, 40, 90, 0.22)) drop-shadow(-1px 0 0 rgba(0, 180, 255, 0.26));
+}
+.glyph-field { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 4; }
+
+/* --- the start screen: the title (drawn by the field), and a menu ------------------ */
+
+.start {
+  background: transparent; color: var(--fg);
+  font-family: var(--console); font-weight: normal; font-size: var(--type); line-height: 1.15;
+  text-transform: uppercase; letter-spacing: 0.02em; text-shadow: var(--fringe);
+  justify-content: center; align-items: center; text-align: left; padding: 4vh 16px;
+}
+/* The title is drawn in tiny glyphs by console.js, over this box; the words stay
+ * for screen readers. */
+.start h1 {
+  color: transparent; text-shadow: none; user-select: none;
+  font-family: var(--console); font-size: clamp(40px, min(9vw, 11.5vh), 118px); line-height: 1;
+  letter-spacing: 0; margin: 0 0 3.5vh;
+}
+.osd { width: min(50ch, 100%); }
+.start .osd p { margin: 0 0 1em; max-width: none; }
+.start .rule { text-align: center; white-space: pre; overflow: hidden; }
+.start .menu { display: flex; flex-direction: column; align-items: flex-start; padding-left: 3ch; margin: 0 0 1em; }
+.start .picks, .start .second { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin: 0; }
+.start .menu button {
+  font: inherit; text-transform: inherit; letter-spacing: inherit; text-shadow: inherit; text-align: left;
+  color: var(--fg); background: transparent; border: 0; box-shadow: none;
+  padding: 0 0.5ch; margin: 0 0 0 -0.5ch; min-width: 0; cursor: pointer;
+}
+/* The highlighted line, as on the VCR: the arrow keys and the pointer move it. */
+.start .menu button.sel, .start .menu button:hover { background: var(--fg); color: #fff; text-shadow: none; border-color: var(--fg); }
+.start .menu button:focus { outline: none; }
+.start .menu button:focus-visible:not(.sel) { outline: 1px dashed var(--fg); }
+.start .keys { font: inherit; margin: 0 0 1.6em; white-space: pre; }
+.start .small {
+  font-size: calc(var(--type) * 0.74); line-height: 1.15; color: var(--dim); text-shadow: none;
+}
+
+/* --- the talking screen ---------------------------------------------------------------- */
+
+.talk {
+  font-family: var(--console); font-weight: normal; font-size: var(--type); line-height: 1.15;
+  text-transform: uppercase; text-shadow: var(--fringe); gap: 0.45em;
+}
+.masks { gap: 0 1.5ch; align-items: baseline; }
+.masks::before { content: "MASK:"; color: var(--dim); }
+.masks li { border: 0; padding: 0 0.5ch; font-size: inherit; letter-spacing: 0.04em; color: var(--dim); background: transparent; }
+.masks li span { text-transform: inherit; letter-spacing: inherit; }
+.masks li.on { background: var(--fg); color: #fff; text-shadow: none; }
+.why, .note, .heard { font-size: calc(var(--type) * 0.85); font-weight: normal; color: var(--dim); text-shadow: none; }
+.said { font-size: calc(var(--type) * 1.3); line-height: 1.1; max-width: 46ch; font-weight: normal; }
+.said .line { opacity: 0.5; }
+.said .line.now { opacity: 1; }
+.said .line.now::after { content: "_"; animation: caret 1.1s steps(1, end) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+
+.controls { gap: 0.3em 2ch; }
+.mic, .typed button, .quiet, .picks button {
+  font: inherit; text-transform: uppercase; letter-spacing: 0.04em; text-shadow: inherit;
+  color: var(--fg); background: transparent; border: 0; box-shadow: none; padding: 0 0.5ch; min-width: 0;
+}
+.mic { gap: 0; }
+.mic-dot { display: none; }
+.mic::before, .typed button::before, .quiet::before { content: "[ "; }
+.mic::after, .typed button::after, .quiet::after { content: " ]"; }
+.quiet { color: var(--dim); }
+.mic:not(:disabled):hover, .typed button:hover, .quiet:hover, .controls button:focus-visible {
+  background: var(--fg); color: #fff; text-shadow: none; outline: none;
+}
+.mic[data-state="listening"] { background: var(--fg); color: #fff; text-shadow: none; animation: caret 1.1s steps(1, end) infinite; }
+.typed { align-items: baseline; gap: 0.5ch; }
+.typed::before { content: ">"; }
+.typed input {
+  font: inherit; text-transform: uppercase; text-shadow: inherit; color: var(--fg); caret-color: var(--fg);
+  background: transparent; border: 0; border-bottom: 1px dashed var(--dim); padding: 0 0.5ch; width: 26ch;
+}
+.typed input:focus { outline: none; border-bottom-color: var(--fg); }
+.typed input::placeholder { color: var(--dim); }
+
+/* The start screen no longer hides what is behind it, so hide the talk row itself. */
+body:has(.start:not([hidden])) .talk { visibility: hidden; }
+
+/* --- the tube, on both pages ----------------------------------------------------------- */
+
+/* Faint blue scanlines, a bright band rolling down, the curved glass going blue at
+ * the edges, the black bezel round it, and a flicker that gets worse as it decays. */
+.crt-glass, .readout-glass {
+  position: fixed; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: normal;
+  background:
+    linear-gradient(to bottom, transparent 0%, rgba(20, 20, 230, 0.035) 48%, transparent 56%) 0 0 / 100% 300% no-repeat,
+    repeating-linear-gradient(to bottom, rgba(20, 20, 230, 0.06) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse 120% 110% at 50% 50%, transparent 62%, rgba(20, 30, 140, 0.16) 86%, rgba(10, 16, 90, 0.5) 100%);
+  border-radius: 3.5vmin;
+  box-shadow: inset 0 0 5vmin rgba(20, 30, 140, 0.3), 0 0 0 2vmin #000;
+  animation: roll-band 7s linear infinite, flicker 0.12s steps(2, end) infinite;
+}
+@keyframes roll-band { from { background-position: 0 -100%, 0 0, 0 0; } to { background-position: 0 200%, 0 0, 0 0; } }
+@keyframes flicker { 50% { opacity: calc(0.97 - var(--decay) * 0.1); } }
+
+/* A jolt (console.js): the text jumps sideways in slices. */
+.signal-burst .talk, .signal-burst .start { animation: signal-tear 0.18s steps(2, end) infinite; }
+@keyframes signal-tear {
+  0% { transform: translateX(0); clip-path: inset(0 0 0 0); }
+  25% { transform: translateX(-10px); clip-path: inset(12% 0 58% 0); }
+  50% { transform: translateX(6px); clip-path: inset(0 0 0 0); }
+  75% { transform: translateX(-3px); clip-path: inset(46% 0 20% 0); }
+  100% { transform: translateX(0); clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-burst .talk, .signal-burst .start, .crt-glass, .readout-glass, .said .line.now::after, .mic[data-state="listening"] { animation: none; }
+}
+
+/* A phone: the menu fills the width. */
+@media (max-width: 560px) {
+  .start .menu { padding-left: 1ch; }
+  .start .rule { font-size: 0.9em; }
+}
+.start .menu button::before, .start .menu button::after { content: none; }

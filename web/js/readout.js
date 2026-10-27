@@ -22,7 +22,13 @@
 
   const canvas = document.getElementById("readout");
   const ctx = canvas.getContext("2d");
-  const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
+  // The console look (readout-console.html): an old console's plain text, the camera
+  // picture drawn in tiny glyphs, and the same strange field as the Oracle's screen
+  // over it all (console.js).
+  const CONSOLE = window.ORACLE_LOOK === "console";
+  const FONT = CONSOLE ? 'VT323, "DejaVu Sans Mono", Consolas, monospace' : 'Consolas, "Lucida Console", "Courier New", monospace';
+  const GLYPHS = '"DejaVu Sans Mono", Menlo, Consolas, "Lucida Console", monospace';
+  const ADV = CONSOLE ? 0.4 : 0.6; // how wide the font's characters are, in ems
 
   // The screen re-tints with whoever is speaking (Weary keeps the CRT green).
   const TINTS = {
@@ -33,11 +39,11 @@
   };
   // The glitch look (readout-glitch.html): white on black for everyone, on the screen
   // of a failing machine (signal.js) that falls apart with the Oracle's.
-  const SIGNAL = (window.ORACLE_LOOK === "glitch" || window.ORACLE_LOOK === "plan") && Oracle.signal;
+  const SIGNAL = ["glitch", "plan", "console"].includes(window.ORACLE_LOOK) && Oracle.signal;
   if (SIGNAL) for (const id of Object.keys(TINTS)) TINTS[id] = { fg: [236, 238, 246], bg: "#000000" };
   // The drawing look (readout-plan.html): blue ink on white paper, over the drawings (plans.js).
   const PAPER = SIGNAL && SIGNAL.light;
-  if (PAPER) for (const id of Object.keys(TINTS)) TINTS[id] = { fg: [31, 43, 214], bg: "#ffffff" };
+  if (PAPER) for (const id of Object.keys(TINTS)) TINTS[id] = { fg: CONSOLE ? [20, 20, 230] : [31, 43, 214], bg: "#ffffff" };
   const C = {
     head: "#ff3030",
     face: "#4a6bff",
@@ -51,6 +57,8 @@
     tagShadow: "#5a2cff",
     stamp: "#f2f2f2",
   };
+  // The console look: blues and a highlighter's lime, nothing else.
+  if (CONSOLE) Object.assign(C, { head: "#1414e6", face: "#8e98dc", eyeR: "#0b0f7a", eyeL: "#0b0f7a", dot: "#1414e6", mesh: "#8e98dc", search: "#0b0f7a", link: "#8e98dc", tag: "#1414e6", tagShadow: "#cdf25a", stamp: "#ffffff" });
   const STAGES = ["FACE DETECTION", "FEATURE SEARCH", "FINAL FEATURE POSNS", "TRIANGULATION", "WARPING", "FEATURE EXTRACTION"];
   const STAGE_AT = [0, 0.7, 1.5, 2.3, 3.2]; // seconds after a face appears
 
@@ -139,6 +147,7 @@
         if (PAPER) {
           // Printed in blue ink: the lights are the paper, the darks are the ink.
           const p = Math.min(1, v);
+          if (CONSOLE) lums[y * PIC_W + x] = p;
           d[i] = 255 * p + tr * (1 - p);
           d[i + 1] = 255 * p + tg * (1 - p);
           d[i + 2] = 255 * p + tb * (1 - p);
@@ -166,7 +175,9 @@
     canvas.height = Math.floor(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const m = Math.round(Math.min(W, H) * 0.025);
-    const fs = Math.max(10, Math.round(Math.min(H / 44, W / 70)));
+    // The console font is narrow and small for its size, so it is set larger, and
+    // still fits more to a line.
+    const fs = CONSOLE ? Math.max(13, Math.round(Math.min(H / 40, W / 64))) : Math.max(10, Math.round(Math.min(H / 44, W / 70)));
     if (W / H >= 1.2) {
       const stripH = Math.round(H * 0.2);
       let vh = H - stripH - m * 3;
@@ -224,6 +235,7 @@
   }
 
   function text(str, x, y, color, size, align) {
+    if (CONSOLE) str = SIGNAL.garble(String(str));
     ctx.font = `${size || L.fs}px ${FONT}`;
     ctx.textAlign = align || "left";
     ctx.textBaseline = "top";
@@ -233,6 +245,7 @@
 
   /* Text with a hard drop shadow, like a camcorder's burned-in stamp. */
   function stamp(str, x, y, size, align) {
+    if (CONSOLE) return inverse(str, x, y, size, align, "#1414e6", "#ffffff");
     ctx.font = `bold ${size}px ${FONT}`;
     ctx.textAlign = align || "left";
     ctx.textBaseline = "top";
@@ -243,6 +256,7 @@
   }
 
   function tag(str, x, y, size) {
+    if (CONSOLE) return inverse(str, x, y, size, "left", C.tagShadow, C.tag);
     ctx.font = `bold ${size}px ${FONT}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
@@ -250,6 +264,22 @@
     ctx.fillText(str, x + 1, y + 1);
     ctx.fillStyle = C.tag;
     ctx.fillText(str, x, y);
+  }
+
+  /* The console look's stamps and tags: text on a block of colour, like the
+   * highlighted line of a VCR's menu. */
+  function inverse(str, x, y, size, align, bg, fg) {
+    str = SIGNAL.garble(String(str));
+    ctx.font = `${size}px ${FONT}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    const w = ctx.measureText(str).width;
+    const left = align === "center" ? x - w / 2 : align === "right" ? x - w : x;
+    const pad = size * 0.18;
+    ctx.fillStyle = bg;
+    ctx.fillRect(left - pad, y + size * 0.12, w + pad * 2, size * 0.76);
+    ctx.fillStyle = fg;
+    ctx.fillText(str, left, y);
   }
 
   function box(r, color, lw) {
@@ -350,8 +380,12 @@
       const dst = { x: v.x + mx * v.w, y: v.y + tile.dy * v.h, w: tile.sw * v.w, h: tile.sh * v.h };
       // The picture canvas is already mirrored, so sample it at the mirrored spot too.
       if (state.mirror) src.x = (1 - tile.sx - tile.sw) * PIC_W;
-      ctx.drawImage(pic, src.x, src.y, src.w, src.h, dst.x, dst.y, dst.w, dst.h);
-      box(dst, "rgba(212,255,60,0.55)", 1);
+      if (CONSOLE) {
+        const sx = glyphPic.width / PIC_W;
+        const sy = glyphPic.height / PIC_H;
+        ctx.drawImage(glyphPic, src.x * sx, src.y * sy, src.w * sx, src.h * sy, dst.x, dst.y, dst.w, dst.h);
+      } else ctx.drawImage(pic, src.x, src.y, src.w, src.h, dst.x, dst.y, dst.w, dst.h);
+      box(dst, CONSOLE ? "rgba(142,152,220,0.8)" : "rgba(212,255,60,0.55)", 1);
       tag(String(tile.id), dst.x + 2, dst.y + 2, size);
     }
   }
@@ -447,12 +481,98 @@
 
   // --- the camera panel ----------------------------------------------------------
 
+  // The console look: the picture as tiny glyphs, denser where it is darker, drawn
+  // about twenty times a second. Like the picture itself, only ever the last one.
+  const RAMP = " .·:-=+*xX#%@▓█";
+  const lums = CONSOLE ? new Float32Array(PIC_W * PIC_H) : null;
+  const glyphPic = CONSOLE ? document.createElement("canvas") : null;
+  let glyphAt = -1e9;
+  function drawGlyphPicture(v, f) {
+    const now = performance.now();
+    const dpr = window.devicePixelRatio || 1;
+    const gw = Math.round(v.w * dpr);
+    const gh = Math.round(v.h * dpr);
+    if (glyphPic.width !== gw || glyphPic.height !== gh) {
+      glyphPic.width = gw;
+      glyphPic.height = gh;
+      glyphAt = -1e9;
+    }
+    if (now - glyphAt > 50) {
+      glyphAt = now;
+      const g = glyphPic.getContext("2d");
+      const ch = Math.max(7, Math.round(v.h / 52));
+      const cw = ch * 0.6;
+      const cols = Math.floor(v.w / cw);
+      const rows = Math.floor(v.h / ch);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.fillStyle = "#ffffff";
+      g.fillRect(0, 0, v.w, v.h);
+      g.font = `bold ${ch}px ${GLYPHS}`;
+      g.textBaseline = "top";
+      // Stretch the range of the face (or of the whole picture, with nobody there),
+      // so the eyes and the mouth come out whatever the light in the room.
+      const r = f ? f.head : { x: 0, y: 0, w: 1, h: 1 };
+      const rx = state.mirror ? 1 - r.x - r.w : r.x;
+      const bx0 = Math.max(0, Math.floor(rx * PIC_W));
+      const bx1 = Math.min(PIC_W, Math.ceil((rx + r.w) * PIC_W));
+      const by0 = Math.max(0, Math.floor(r.y * PIC_H));
+      const by1 = Math.min(PIC_H, Math.ceil((r.y + r.h) * PIC_H));
+      const hist = new Uint32Array(64);
+      let total = 0;
+      for (let y = by0; y < by1; y += 2) for (let x = bx0; x < bx1; x += 2) hist[Math.min(63, Math.floor(lums[y * PIC_W + x] * 64))]++, total++;
+      let lo = 0;
+      let hi = 1;
+      for (let b = 0, acc = 0; b < 64; b++) if ((acc += hist[b]) > total * 0.03) { lo = b / 64; break; }
+      for (let b = 63, acc = 0; b >= 0; b--) if ((acc += hist[b]) > total * 0.08) { hi = (b + 1) / 64; break; }
+      const span = Math.max(0.15, hi - lo);
+      // Each cell's lightness, then sharpened against its neighbours so the eyes,
+      // the mouth and the outline of the face come through.
+      const cells = new Float32Array(cols * rows);
+      for (let y = 0; y < rows; y++) {
+        const py0 = Math.floor((y / rows) * PIC_H);
+        const py1 = Math.max(py0 + 1, Math.floor(((y + 1) / rows) * PIC_H));
+        for (let x = 0; x < cols; x++) {
+          const px0 = Math.floor((x / cols) * PIC_W);
+          const px1 = Math.max(px0 + 1, Math.floor(((x + 1) / cols) * PIC_W));
+          let sum = 0;
+          let n = 0;
+          for (let py = py0; py < py1; py += 2) for (let px = px0; px < px1; px++) (sum += lums[py * PIC_W + px]), n++;
+          cells[y * cols + x] = Math.min(1, Math.max(0, (sum / n - lo) / span));
+        }
+      }
+      let last = null;
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          let around = 0;
+          let n = 0;
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              const yy = y + dy;
+              const xx = x + dx;
+              if (yy >= 0 && xx >= 0 && yy < rows && xx < cols) (around += cells[yy * cols + xx]), n++;
+            }
+          }
+          const c = cells[y * cols + x];
+          const v = Math.min(1, Math.max(0, c + (c - around / n) * 1.2));
+          const idx = Math.floor((1 - v) * (RAMP.length - 0.01));
+          if (idx <= 0) continue;
+          const colour = idx >= RAMP.length - 2 ? "#0b0f7a" : "#1414e6";
+          if (colour !== last) g.fillStyle = last = colour;
+          g.fillText(RAMP[idx], x * cw, y * ch);
+        }
+      }
+    }
+    ctx.drawImage(glyphPic, v.x, v.y, v.w, v.h);
+  }
+
   function drawVideo(t, f, stage, tint) {
     const v = L.video;
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = CONSOLE ? "#ffffff" : "#000";
     ctx.fillRect(v.x, v.y, v.w, v.h);
     const ok = processPicture(t, tint);
-    if (ok) {
+    if (ok && CONSOLE) {
+      drawGlyphPicture(v, f);
+    } else if (ok) {
       ctx.imageSmoothingEnabled = true;
       ctx.drawImage(pic, v.x, v.y, v.w, v.h);
     } else {
@@ -495,6 +615,23 @@
   }
 
   function drawNoise(r, tint, alpha) {
+    if (CONSOLE) {
+      // Static, in tiny glyphs.
+      const ch = Math.max(8, Math.round(Math.min(r.h / 26, L.fs * 0.7)));
+      const cw = ch * 0.6;
+      ctx.font = `${ch}px ${GLYPHS}`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillStyle = rgb(tint.fg, Math.min(1, alpha));
+      for (let y = r.y; y + ch <= r.y + r.h; y += ch) {
+        for (let x = r.x; x + cw <= r.x + r.w; x += cw) {
+          const v = Math.random();
+          if (v < 0.62) continue;
+          ctx.fillText(v > 0.985 ? "▒" : v > 0.95 ? "░" : v > 0.84 ? ":" : "·", x, y);
+        }
+      }
+      return;
+    }
     const cell = Math.max(3, Math.round(r.w / 90));
     for (let y = r.y; y < r.y + r.h; y += cell) {
       for (let x = r.x; x < r.x + r.w; x += cell) {
@@ -508,6 +645,18 @@
   // --- the side panel --------------------------------------------------------------
 
   function bar(x, y, w, value, color, dim) {
+    if (CONSOLE) {
+      // The console font has no block characters, so the cells are drawn.
+      const cw = L.fs * ADV;
+      const cells = Math.max(6, Math.floor(w / cw));
+      const on = Math.round(value * cells);
+      for (let i = 0; i < cells; i++) {
+        ctx.fillStyle = i < on ? color : dim;
+        if (i < on) ctx.fillRect(x + i * cw, y + L.fs * 0.14, cw - 1, L.fs * 0.66);
+        else ctx.fillRect(x + i * cw + cw * 0.35, y + L.fs * 0.42, Math.max(1, cw * 0.3), Math.max(1, cw * 0.3));
+      }
+      return;
+    }
     const cells = Math.max(6, Math.floor(w / (L.fs * 0.62)));
     const on = Math.round(value * cells);
     text("█".repeat(on), x, y, color);
@@ -519,14 +668,14 @@
     const fg = rgb(tint.fg);
     const dim = rgb(tint.fg, 0.45);
     const lh = Math.round(L.fs * 1.35);
-    const cols = Math.floor(p.w / (L.fs * 0.6));
+    const cols = Math.floor(p.w / (L.fs * ADV));
     let y = p.y;
     const line = (str, color) => {
       if (y + lh > p.y + p.h) return;
       text(str.slice(0, cols), p.x, y, color || fg);
       y += lh;
     };
-    const rule = () => line("─".repeat(cols), dim);
+    const rule = () => line((CONSOLE ? "-" : "─").repeat(cols), dim); // the console font has no box lines
 
     const linked = performance.now() - state.linked < 3000;
     line(`ORACLE//WATCH  ${Math.floor(t * 2) % 2 ? "●" : " "} LIVE`);
@@ -561,7 +710,7 @@
     for (const [name, v] of [["AFFECT   ", g.affect], ["TENSION  ", g.tension], ["ATTENTION", g.attention], ["VOCAL    ", g.vocal]]) {
       if (y + lh > p.y + p.h) break;
       text(name, p.x, y, f ? fg : dim);
-      bar(p.x + L.fs * 0.6 * 10, y, p.w - L.fs * 0.6 * 16, f ? v : 0, fg, dim);
+      bar(p.x + L.fs * ADV * 10, y, p.w - L.fs * ADV * 16, f ? v : 0, fg, dim);
       text(f ? v.toFixed(2) : "-.--", p.x + p.w, y, f ? fg : dim, L.fs, "right");
       y += lh;
     }
@@ -647,8 +796,9 @@
     const small = Math.round(big * 0.42);
     const cx = v.x + v.w / 2;
     const top = v.y + v.h * 0.52; // below the face, above the date stamp
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillStyle = CONSOLE ? "#ffffff" : "rgba(0,0,0,0.55)";
     ctx.fillRect(v.x + v.w * 0.08, top - small * 0.6, v.w * 0.84, big + small * 4.2);
+    if (CONSOLE) box({ x: v.x + v.w * 0.08, y: top - small * 0.6, w: v.w * 0.84, h: big + small * 4.2 }, C.head, 2);
     if (!c.result) {
       text(Math.floor(t * 2) % 2 ? "INSTRUCTION" : "INSTRUCTION ▮", cx, top, C.tag, small, "center");
       stamp(c.label.toUpperCase(), cx, top + small * 1.4, big, "center");

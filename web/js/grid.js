@@ -23,9 +23,11 @@
     ink: "#0b1a8c",
   });
   const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
-  // The clean, glitch and drawing looks use heavier type, so the two tones read well.
-  const WEIGHT = ["clean", "glitch", "plan"].includes(window.ORACLE_LOOK) ? "bold " : "";
-  const TARGET_ROWS = 60; // about 60 rows tall on any screen; columns follow the width
+  // The clean, glitch, drawing and console looks use heavier type, so the two tones read well.
+  const WEIGHT = ["clean", "glitch", "plan", "console"].includes(window.ORACLE_LOOK) ? "bold " : "";
+  // About 60 rows tall on any screen (columns follow the width); the console look's
+  // characters are smaller, so its figures are finer.
+  const TARGET_ROWS = window.ORACLE_LOOK === "console" ? 84 : 60;
 
   class Grid {
     constructor(canvas) {

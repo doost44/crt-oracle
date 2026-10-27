@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRT Oracle: readout (console)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<link rel="stylesheet" href="css/readout.css">
+<link rel="stylesheet" href="css/console.css">
+</head>
+<body>
+<!-- The second monitor: the participant's live face under made-up surveillance readouts.
+     Theatre only. Nothing identifies anyone, and no picture is stored or sent. -->
+<canvas id="readout" aria-label="Live camera picture with face tracking readouts"></canvas>
+<div class="readout-glass" aria-hidden="true"></div>
+
+<!-- The console look: plain console text, the camera picture in tiny glyphs, and the
+     same strange space drifting through it as on the Oracle's screen. -->
+<script>window.ORACLE_LOOK = "console";</script>
+<script src="js/console.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/vision.js"></script>
+<script src="js/face-reading.js"></script>
+<script src="js/presence.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/readout.js"></script>
+</body>
+</html>

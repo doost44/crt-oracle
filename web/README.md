@@ -202,6 +202,36 @@ The drawings are made up when the page loads (`js/plans.js`); `css/plan.css`
 does the paper. `?decay=` and Alt+D work as in the glitch look. Test:
 `LOOK=plan node web/tests/talk_readout.e2e.js face.jpg`.
 
+### Console look (`talk-console.html`, `readout-console.html`)
+
+An old computer's plain console text, blue on a white tube: everything in one
+small blocky font (VT323, from Google Fonts; without it the system's monospace),
+uppercase, a little out of register like a real CRT. The start screen is a menu
+like a VCR's on-screen one: `--------- MENU ---------`, a highlighted line you
+move with the arrow keys (or the pointer), and Enter (or the right arrow) to pick.
+
+Through it shows a strange digital space, made only of tiny characters: patches
+of odd glyphs, runs of words and hex, box-drawn tables, hatching, flat blocks of
+blue and highlighter lime, bars, shards, streaks running down, rows torn
+sideways, most of them mirrored across the middle of the screen. The title is
+drawn the same way, in dense tiny glyphs. Each patch lives a few seconds and is
+replaced, so the screen drifts by itself, over about a minute and a half, from
+nearly clean to nearly gone and back. Letters of the menu turn into odd ones now
+and then, more the worse it gets.
+
+- **How broken:** the drift is always there. Every answer wears it down further
+  (its calm moments stop being calm), and when the Oracle is done with you it
+  stays near the worst. A new visit starts clean. A mask switch or a command
+  jolts it. The field leaves the answer box and buttons alone.
+- **The camera screen** draws the camera picture in tiny glyphs too, levelled on
+  the face so the eyes and mouth come through, with the same field over it.
+- `?decay=` and Alt+D work as in the glitch look.
+
+The field is `js/console.js` (a canvas over the page, redrawn about 15 times a
+second from random characters; nothing is kept), and it takes the place of
+`js/signal.js` on these pages with the same calls. `css/console.css` does the
+text and the glass. Test: `LOOK=console node web/tests/talk_readout.e2e.js face.jpg`.
+
 ## Voice answers and physical actions
 
 Switched on from the address bar, so the plain visit stays exactly as it was:
@@ -302,6 +332,7 @@ web/
   js/theme.js       the palette per personality, and the flickery switch between them
   js/signal.js      the glitch look's failing screen: haze, smears, drips, stuck blocks, roll
   js/plans.js       the drawing look's turning stack of technical drawings
+  js/console.js     the console look's drifting field of tiny glyphs, and its VCR-style menu
   js/grid.js        the character screen: one canvas, a grid of cells
   js/hallway.js     the ASCII hallway drift, and the VHS wobble and edge static
   js/face.js        the painted sun face, lit from the height and sculpt maps

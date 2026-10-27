@@ -123,6 +123,25 @@
     for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, paper, { orange: accent[id] });
   }
 
+  // The console look (talk-console.html sets window.ORACLE_LOOK = "console"): an old
+  // computer's plain console text, blue on white for everyone. Each mask keeps a
+  // colour of its own in the accent slot, the one its glyph field shows (console.js).
+  if (window.ORACLE_LOOK === "console") {
+    const tube = {
+      bg: "#ffffff",
+      fg: "#1414e6",
+      dim: "#8e98dc",
+      bright: "#0b0f7a",
+      orange: "#1414e6",
+      red: "#1414e6",
+      teal: "#8e98dc",
+      ink: "#ffffff",
+      bleed: "#1414e6",
+    };
+    const accent = { neutral: "#1414e6", sugar: "#e8792e", weary: "#4f9a5e", clinical: "#1a9fb8" };
+    for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, tube, { orange: accent[id] });
+  }
+
   const KEYS = Object.keys(THEMES.neutral);
   const SWITCH_MS = 900;
 
