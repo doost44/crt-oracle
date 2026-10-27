@@ -1,0 +1,119 @@
+/* The character screen: a grid of cells drawn on one canvas.
+ *
+ * Every scene draws by calling grid.set(x, y, ch, color) between grid.clear()
+ * and grid.render(). Colors are palette keys (see PALETTE), so the look can
+ * change in one place.
+ */
+(function () {
+  "use strict";
+  const Oracle = (window.Oracle = window.Oracle || {});
+
+  const PALETTE = {
+    bg: "#1530e8",
+    fg: "#f4f6ff",
+    dim: "#93a3ff",
+    bright: "#ffffff",
+    orange: "#ff9b2f",
+    red: "#ff3b3b",
+    teal: "#37d6c5",
+    ink: "#0b1a8c",
+  };
+  const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
+  const TARGET_ROWS = 48; // about 48 rows tall on any screen; columns follow the width
+
+  class Grid {
+    constructor(canvas) {
+      this.canvas = canvas;
+      this.ctx = canvas.getContext("2d");
+      this.resize();
+      window.addEventListener("resize", () => this.resize());
+    }
+
+    resize() {
+      const dpr = window.devicePixelRatio || 1;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      this.cellH = Math.max(8, Math.min(24, Math.floor(h / TARGET_ROWS)));
+      this.cellW = Math.round(this.cellH * 0.6 * 100) / 100;
+      this.cols = Math.max(20, Math.floor(w / this.cellW));
+      this.rows = Math.max(10, Math.floor(h / this.cellH));
+      this.offsetX = (w - this.cols * this.cellW) / 2;
+      this.offsetY = (h - this.rows * this.cellH) / 2;
+      this.canvas.width = Math.floor(w * dpr);
+      this.canvas.height = Math.floor(h * dpr);
+      this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      document.documentElement.style.setProperty("--cell", this.cellH + "px");
+      const n = this.cols * this.rows;
+      this.chars = new Array(n).fill(" ");
+      this.colors = new Array(n).fill("fg");
+    }
+
+    clear() {
+      this.chars.fill(" ");
+      this.colors.fill("fg");
+    }
+
+    inside(x, y) {
+      return x >= 0 && y >= 0 && x < this.cols && y < this.rows;
+    }
+
+    set(x, y, ch, color) {
+      x = Math.floor(x);
+      y = Math.floor(y);
+      if (!this.inside(x, y)) return;
+      const i = y * this.cols + x;
+      this.chars[i] = ch;
+      this.colors[i] = color || "fg";
+    }
+
+    get(x, y) {
+      x = Math.floor(x);
+      y = Math.floor(y);
+      if (!this.inside(x, y)) return " ";
+      return this.chars[y * this.cols + x];
+    }
+
+    /* Write a string starting at (x, y). */
+    text(x, y, str, color) {
+      for (let i = 0; i < str.length; i++) this.set(x + i, y, str[i], color);
+    }
+
+    render() {
+      const ctx = this.ctx;
+      ctx.fillStyle = PALETTE.bg;
+      ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      ctx.font = `${this.cellH}px ${FONT}`;
+      ctx.textBaseline = "top";
+      let last = null;
+      for (let y = 0; y < this.rows; y++) {
+        for (let x = 0; x < this.cols; x++) {
+          const i = y * this.cols + x;
+          const ch = this.chars[i];
+          if (ch === " ") continue;
+          const color = this.colors[i];
+          if (color !== last) {
+            ctx.fillStyle = PALETTE[color] || color;
+            last = color;
+          }
+          ctx.fillText(ch, this.offsetX + x * this.cellW, this.offsetY + y * this.cellH);
+        }
+      }
+    }
+  }
+
+  /* Small seeded random generator, so glitches can be repeatable in tests. */
+  function rng(seed) {
+    let s = seed >>> 0 || 1;
+    return function () {
+      s ^= s << 13;
+      s ^= s >>> 17;
+      s ^= s << 5;
+      return (s >>> 0) / 4294967296;
+    };
+  }
+
+  Oracle.PALETTE = PALETTE;
+  Oracle.Grid = Grid;
+  Oracle.rng = rng;
+  Oracle.scenes = Oracle.scenes || {};
+})();

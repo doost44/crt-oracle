@@ -1,0 +1,39 @@
+/* CRT Oracle web: cobalt blue, white characters, terminal text (reference 03). */
+:root {
+  --bg: #1530e8;
+  --fg: #f4f6ff;
+  --dim: #93a3ff;
+  --bright: #ffffff;
+  --orange: #ff9b2f;
+  --red: #ff3b3b;
+  --teal: #37d6c5;
+  --ink: #0b1a8c;
+  --font: Consolas, "Lucida Console", "Courier New", monospace;
+  --cell: 16px; /* set by grid.js to the canvas cell height */
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--fg); }
+body { font-family: var(--font); }
+
+#screen {
+  position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.55));
+}
+
+/* Scanlines and a soft vignette, like glass in front of the picture. */
+.crt-overlay {
+  position: fixed; inset: 0; pointer-events: none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 40, 0.18) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 50, 0.55) 100%);
+}
+
+/* The talking part: bottom of the screen, like the poster's credit lines. */
+.terminal {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 40vh;
+  padding: 0 4ch 2.5vh; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  font-size: calc(var(--cell) * 1.0); line-height: 1.25;
+  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+}

@@ -36,6 +36,9 @@ Typing first, speech later, keyboard moments throughout. The Oracle can blame mi
 - CRT: VGA input; needs a VGA output from the laptop; check accepted resolution.
 - Receipt printer: not chosen.
 
+## Web version (added 2026-10-26)
+The game moves to a static site on GitHub Pages: PRESS ENTER, then an ASCII hallway (references 01 and 02), then the painted face as a floating, rotating ASCII Oracle (reference 04, depth layers in assets/oracle-face/), then the conversation. Style follows reference 03: blue background, white characters, terminal text. Replies come from Claude through a proxy that holds the API key; a scripted fallback keeps it working without the AI. Webcam face detection runs in the browser. See WEB_BUILD_PROMPT.md.
+
 ## Roadmap
 1. Foundation (this repo). Done.
 2. Hardware bring-up: capture adapter on the laptop, laptop to CRT.
