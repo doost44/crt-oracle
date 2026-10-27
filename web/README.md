@@ -225,7 +225,10 @@ Clinical in a small hard room with a short metallic flutter. The browser's own
 voices can't be put through effects, so these come from meSpeak (eSpeak in the
 browser, GPL; `js/roomvoice.js`) and go through Web Audio: a convolution reverb
 made from decaying noise and a feedback delay. They sound more synthetic than the
-system voices, which suits a machine in a room. Fetch them once with
+system voices, which suits a machine in a room. The masks are one mind, so the
+voices glitch into each other: the other masks say the same words underneath and
+tear through in short slices, a fragment sometimes stutters, and right after a
+switch the last mask bleeds through for a moment (`GLITCH` in `js/roomvoice.js`). Fetch them once with
 `python tools/fetch_voices.py` (into `web/vendor/mespeak/`, ignored by git);
 without them, or with the **Echo** button off (or `?voices=plain`), the page uses
 the browser's voices with no effects. The settings per mask are at the top of

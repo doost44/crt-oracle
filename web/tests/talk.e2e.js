@@ -156,6 +156,23 @@ async function roomVoices(base) {
   });
   console.log("     room voice lengths (s):", JSON.stringify(lengths, (k, v) => (typeof v === "number" ? +v.toFixed(2) : v)));
   if (!(lengths.weary > lengths.sugar && lengths.weary > lengths.clinical)) fail("Weary should speak slowest");
+  // The glitches change the sound: the same line with and without them differs.
+  const glitched = await page.evaluate(async () => {
+    const room = window.Oracle.talk.room;
+    const G = window.Oracle.RoomVoice.GLITCH;
+    let seed = 7;
+    const random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    const render = () => room.renderRoom("Response logged. Hesitation noted.", "clinical", { sampleRate: 22050, random, from: "weary" });
+    const a = (await render()).getChannelData(0);
+    const keep = Object.assign({}, G);
+    Object.assign(G, { perSecond: 0, bleed: 0 });
+    const b = (await render()).getChannelData(0);
+    Object.assign(G, keep);
+    let diff = 0;
+    for (let i = 0; i < Math.min(a.length, b.length); i++) diff += Math.abs(a[i] - b[i]);
+    return diff / a.length;
+  });
+  if (!(glitched > 0.001)) fail("the glitches made no difference: " + glitched);
   const spoke = await page.evaluate(async () => {
     const room = window.Oracle.talk.room;
     room.unlock();

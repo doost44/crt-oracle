@@ -11,10 +11,17 @@
  * into a sound buffer, which goes through Web Audio: dry voice, a convolution
  * reverb whose impulse is made here from decaying noise, and a feedback delay.
  *
+ * The masks are one mind, so the voices glitch into each other: under every line
+ * the other two masks say the same words, silent except for short torn-in slices
+ * where they cut through and the speaking voice drops out, and now and then a
+ * fragment stutters. Just after a switch the mask that was speaking bleeds
+ * through for a moment.
+ *
  *   const room = new Oracle.RoomVoice();
  *   await room.load()            -> true when the voices are there
  *   room.unlock()                // inside a click: browsers start audio on a gesture
- *   await room.speak(text, mask) // resolves when the words end (the room rings on)
+ *   await room.speak(text, mask, { from }) // resolves when the words end (the room rings on)
+ *                                           // from: the mask that spoke last, to bleed through
  *   room.stop()
  */
 (function () {
@@ -30,20 +37,28 @@
   const MASKS = {
     sugar: {
       speech: { variant: "f5", pitch: 78, speed: 158, amplitude: 120 },
-      reverb: { seconds: 2.6, decay: 2.4, wet: 0.42, tone: 6500 },
-      echo: { time: 0.29, feedback: 0.3, level: 0.28, tone: 4200 },
+      reverb: { seconds: 1.5, decay: 3, wet: 0.18, tone: 6500 },
+      echo: { time: 0.26, feedback: 0.14, level: 0.1, tone: 4200 },
     },
     weary: {
       speech: { variant: "m3", pitch: 18, speed: 112, amplitude: 120, wordgap: 2 },
-      reverb: { seconds: 5.5, decay: 2.2, wet: 0.62, tone: 1400 },
-      echo: { time: 0.62, feedback: 0.48, level: 0.42, tone: 1300 },
+      reverb: { seconds: 2.6, decay: 3, wet: 0.26, tone: 1600 },
+      echo: { time: 0.42, feedback: 0.22, level: 0.14, tone: 1400 },
     },
     clinical: {
       speech: { variant: "klatt3", pitch: 46, speed: 165, amplitude: 120 },
-      reverb: { seconds: 0.9, decay: 4.5, wet: 0.34, tone: 9000 },
-      echo: { time: 0.085, feedback: 0.55, level: 0.32, tone: 7000 },
+      reverb: { seconds: 0.6, decay: 5, wet: 0.16, tone: 9000 },
+      echo: { time: 0.08, feedback: 0.3, level: 0.12, tone: 7000 },
     },
   };
+
+  // The glitches between voices.
+  //   perSecond   torn-in slices of another mask, on average, per second of speech
+  //   slice       how long each lasts, seconds (min, max)
+  //   stutter     chance that a glitch is a stutter of the speaking voice instead
+  //   bleed       level of the last mask under the first moments after a switch
+  //   bleedFor    seconds that bleed takes to fade
+  const GLITCH = { perSecond: 0.9, slice: [0.06, 0.2], stutter: 0.3, bleed: 0.35, bleedFor: 1.6 };
 
   const url = (p) => new URL(p, document.baseURI).href;
 
@@ -170,40 +185,109 @@
       return input;
     }
 
-    /* The line with its room, rendered offline: an AudioBuffer including the
-     * tail. For tests, and for listening to the masks without the page. */
-    async renderRoom(text, mask, sampleRate) {
-      const dry = await this.render(text, mask);
-      const spec = MASKS[mask] || MASKS.clinical;
-      const rate = sampleRate || dry.sampleRate;
-      const tail = spec.reverb.seconds + spec.echo.time * 8;
+    /* The line in the speaking mask's voice, and the same words in the other two. */
+    async _voices(text, mask) {
+      mask = MASKS[mask] ? mask : "clinical";
+      const main = await this.render(text, mask);
+      const ghosts = {};
+      for (const other of Object.keys(MASKS)) if (other !== mask) ghosts[other] = await this.render(text, other);
+      return { mask, main, ghosts };
+    }
+
+    /* Schedule a line and its glitches into `dest` on `ctx`, starting at t0.
+     * Returns the speaking voice's source (its end is the end of the words). */
+    _schedule(ctx, dest, v, t0, from, random) {
+      random = random || Math.random;
+      const dur = v.main.duration;
+      const source = (buffer, rate) => {
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = rate || 1;
+        return src;
+      };
+
+      const mainGain = ctx.createGain();
+      mainGain.connect(dest);
+      const main = source(v.main);
+      main.connect(mainGain);
+      main.start(t0);
+
+      // The other masks say the same words, stretched to the same length, muted
+      // except where they tear through.
+      const ghostGains = {};
+      const ghosts = [];
+      for (const [other, buffer] of Object.entries(v.ghosts)) {
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0, t0);
+        if (other === from) {
+          g.gain.setValueAtTime(GLITCH.bleed, t0);
+          g.gain.linearRampToValueAtTime(0, t0 + Math.min(GLITCH.bleedFor, dur));
+        }
+        g.connect(dest);
+        const src = source(buffer, buffer.duration / dur);
+        src.connect(g);
+        src.start(t0);
+        ghostGains[other] = g;
+        ghosts.push(src);
+      }
+
+      // The glitches: hard cuts, no fades, like a tape jumping between voices.
+      const names = Object.keys(ghostGains);
+      const count = Math.round(dur * GLITCH.perSecond * (0.6 + random() * 0.8));
+      for (let i = 0; i < count; i++) {
+        const len = GLITCH.slice[0] + random() * (GLITCH.slice[1] - GLITCH.slice[0]);
+        const at = 0.15 + random() * Math.max(0.01, dur - len - 0.3);
+        if (random() < GLITCH.stutter) {
+          // The speaking voice catches on a fragment and repeats it.
+          for (let k = 1; k <= 2; k++) {
+            const rep = source(v.main);
+            const g = ctx.createGain();
+            g.gain.value = 0.8 / k;
+            rep.connect(g).connect(dest);
+            rep.start(t0 + at + len * k, at, len);
+          }
+        } else {
+          const g = ghostGains[names[Math.floor(random() * names.length)]].gain;
+          g.setValueAtTime(0.95, t0 + at);
+          g.setValueAtTime(0, t0 + at + len);
+          mainGain.gain.setValueAtTime(0.12, t0 + at);
+          mainGain.gain.setValueAtTime(1, t0 + at + len);
+        }
+      }
+      return { main, ghosts };
+    }
+
+    /* The line with its room and glitches, rendered offline: an AudioBuffer
+     * including the tail. For tests, and for listening without the page. */
+    async renderRoom(text, mask, opts) {
+      opts = opts || {};
+      const v = await this._voices(text, mask);
+      const spec = MASKS[v.mask];
+      const rate = opts.sampleRate || v.main.sampleRate;
+      const tail = spec.reverb.seconds + spec.echo.time * 8 + GLITCH.slice[1] * 3;
       const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-      const ctx = new OAC(2, Math.ceil((dry.duration + tail) * rate), rate);
-      const src = ctx.createBufferSource();
-      src.buffer = dry;
-      src.connect(this._room(mask, ctx));
-      src.start();
+      const ctx = new OAC(2, Math.ceil((v.main.duration + tail) * rate), rate);
+      this._schedule(ctx, this._room(v.mask, ctx), v, 0, opts.from, opts.random);
       return ctx.startRendering();
     }
 
-    /* Say `text` in the mask's voice and room. Resolves when the words end; the
-     * reverb and echo ring on under whatever comes next. */
-    async speak(text, mask) {
+    /* Say `text` in the mask's voice and room, with the other masks glitching
+     * through. Resolves when the words end; the room rings on. */
+    async speak(text, mask, opts) {
       if (!this.ready) throw new Error("room voices not loaded");
+      opts = opts || {};
       this.unlock();
-      const buffer = await this.render(text, mask);
-      const src = this.ctx.createBufferSource();
-      src.buffer = buffer;
-      src.connect(this._room(mask));
-      this.playing.add(src);
+      const v = await this._voices(text, mask);
+      const { main, ghosts } = this._schedule(this.ctx, this._room(v.mask), v, this.ctx.currentTime + 0.03, opts.from);
+      const all = [main, ...ghosts];
+      all.forEach((src) => this.playing.add(src));
       await new Promise((resolve) => {
-        const cap = setTimeout(resolve, buffer.duration * 1000 + 1500);
-        src.onended = () => {
+        const cap = setTimeout(resolve, v.main.duration * 1000 + 1500);
+        main.onended = () => {
           clearTimeout(cap);
-          this.playing.delete(src);
+          all.forEach((src) => this.playing.delete(src));
           resolve();
         };
-        src.start();
       });
     }
 
@@ -220,5 +304,6 @@
   }
 
   RoomVoice.MASKS = MASKS;
+  RoomVoice.GLITCH = GLITCH;
   Oracle.RoomVoice = RoomVoice;
 })();

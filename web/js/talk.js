@@ -166,10 +166,13 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     b.setAttribute("aria-pressed", String(useRoom));
   }
 
+  let lastVoice = null; // the mask that spoke last, to bleed into the next one
   async function say(line, mask) {
+    const from = lastVoice !== mask ? lastVoice : null;
+    lastVoice = mask;
     if (useRoom && room && room.ready) {
       try {
-        return await room.speak(line, mask);
+        return await room.speak(line, mask, { from });
       } catch (err) {
         console.warn("Oracle room voice:", err);
       }
