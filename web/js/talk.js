@@ -163,7 +163,19 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
 
   const bus = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("crt-oracle") : null;
   const eye = { seen: 0, camera: "off", face: false, results: new Map() };
-  const post = (msg) => bus && bus.postMessage(Object.assign({ from: "main" }, msg));
+  // The second screen also gets messages straight from window to window, for
+  // browsers that keep a page inside claude.ai apart from its pop-up (see presence.js).
+  let screen2 = null;
+  const heardIds = [];
+  function post(msg) {
+    const m = Object.assign({ from: "main", n: Math.random().toString(36).slice(2) }, msg);
+    if (bus) bus.postMessage(m);
+    try {
+      if (screen2 && !screen2.closed) screen2.postMessage({ "crt-oracle": m }, "*");
+    } catch (e) {
+      screen2 = null;
+    }
+  }
   const eyeLinked = () => performance.now() - eye.seen < 3000;
   const eyeLive = () => eyeLinked() && eye.camera === "live";
 
@@ -174,19 +186,23 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     if (force || key !== lastShared) post(s);
     lastShared = key;
   }
-  if (bus) {
-    bus.onmessage = (e) => {
-      const msg = e.data || {};
-      if (msg.from !== "readout") return;
-      if (msg.type === "hello") shareState(true);
-      if (msg.type === "eye") Object.assign(eye, { seen: performance.now(), camera: msg.camera, face: !!msg.face });
-      if (msg.type === "command-result") {
-        const waiting = eye.results.get(msg.id);
-        if (waiting) waiting(msg);
-      }
-    };
-    setInterval(() => shareState(true), 1000);
+  function onEye(msg) {
+    msg = msg || {};
+    if (msg.from !== "readout") return;
+    if (msg.n && heardIds.includes(msg.n)) return;
+    if (msg.n) heardIds.push(msg.n) > 64 && heardIds.shift();
+    if (msg.type === "hello") shareState(true);
+    if (msg.type === "eye") Object.assign(eye, { seen: performance.now(), camera: msg.camera, face: !!msg.face });
+    if (msg.type === "command-result") {
+      const waiting = eye.results.get(msg.id);
+      if (waiting) waiting(msg);
+    }
   }
+  if (bus) bus.onmessage = (e) => onEye(e.data);
+  window.addEventListener("message", (e) => {
+    if (screen2 && e.source === screen2 && e.data && e.data["crt-oracle"]) onEye(e.data["crt-oracle"]);
+  });
+  setInterval(() => shareState(true), 1000);
 
   /* Ask the readout to watch for a command; resolves with how it went. */
   function command(action, mask) {
@@ -205,7 +221,8 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
 
   function openSecondScreen() {
     const w = window.open("readout.html", "oracle-readout", "popup,width=1280,height=800");
-    if (!w) note.textContent = "The browser blocked the second screen. Open readout.html in another window instead.";
+    if (w) screen2 = w;
+    else note.textContent = "The browser blocked the second screen. Open readout.html in another window instead.";
   }
 
   // --- Claude ----------------------------------------------------------------------

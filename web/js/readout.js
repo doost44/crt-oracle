@@ -693,7 +693,8 @@
     const cy = v.y + v.h / 2;
     text("NO SIGNAL", cx, cy - L.fs * 3, C.head, L.fs * 2.4, "center");
     text(presence.status === "starting" ? "WAITING FOR THE CAMERA" : (presence.error || "CAMERA OFF").toUpperCase().slice(0, 60), cx, cy, rgb(tint.fg), L.fs, "center");
-    text("C: TRY THE NEXT CAMERA   ?camera=NAME PICKS ONE", cx, cy + L.fs * 2, rgb(tint.fg, 0.6), L.fs * 0.85, "center");
+    const hint = presence.status === "error" ? "CLICK HERE TO TURN ON THE CAMERA" : "C: TRY THE NEXT CAMERA   ?camera=NAME PICKS ONE";
+    text(hint, cx, cy + L.fs * 2, rgb(tint.fg, presence.status === "error" ? 1 : 0.6), L.fs * (presence.status === "error" ? 1.1 : 0.85), "center");
     box(v, rgb(tint.fg, 0.5), 1);
   }
 
@@ -797,6 +798,10 @@
     } else if (k === "h") {
       state.help = !state.help;
     }
+  });
+  // A click asks for the camera again: Chrome shows its permission prompt for a click.
+  canvas.addEventListener("click", () => {
+    if (presence.status === "error") presence.retry();
   });
   canvas.addEventListener("dblclick", () => document.documentElement.requestFullscreen().catch(() => {}));
 
