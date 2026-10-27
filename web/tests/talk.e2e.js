@@ -89,7 +89,7 @@ async function run(browser, base, withClaude) {
   if (process.env.DEBUG) page.on("console", (m) => console.log("console:", m.text()));
   await page.addInitScript(stubSpeech);
   if (withClaude) await page.addInitScript(stubClaude);
-  await page.goto(base + "/talk.html");
+  await page.goto(base + "/talk.html?voices=plain");
 
   const mask = () => page.evaluate(() => window.Oracle.talk.state.mask);
   const waitIdle = () =>
@@ -137,6 +137,37 @@ async function run(browser, base, withClaude) {
   await page.close();
 }
 
+/* The room voices: meSpeak through reverb and echo, a different voice per mask.
+ * Skipped when web/vendor/mespeak is missing (python tools/fetch_voices.py). */
+async function roomVoices(base) {
+  const browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
+  const page = await browser.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.addInitScript(() => (window.SpeechRecognition = window.webkitSpeechRecognition = undefined));
+  await page.goto(base + "/talk.html");
+  await page.waitForFunction(() => window.Oracle.talk.room.ready, null, { timeout: 20000 });
+  if (!(await page.evaluate(() => window.Oracle.talk.useRoom))) fail("room voices are not on by default");
+  const lengths = await page.evaluate(async () => {
+    const room = window.Oracle.talk.room;
+    const out = {};
+    for (const mask of ["sugar", "weary", "clinical"]) out[mask] = (await room.render("I have been here a very long time.", mask)).duration;
+    return out;
+  });
+  console.log("     room voice lengths (s):", JSON.stringify(lengths, (k, v) => (typeof v === "number" ? +v.toFixed(2) : v)));
+  if (!(lengths.weary > lengths.sugar && lengths.weary > lengths.clinical)) fail("Weary should speak slowest");
+  const spoke = await page.evaluate(async () => {
+    const room = window.Oracle.talk.room;
+    room.unlock();
+    const t0 = performance.now();
+    await room.speak("Subject detected.", "clinical");
+    return { ms: performance.now() - t0, state: room.ctx.state, rooms: Object.keys(room.rooms) };
+  });
+  if (spoke.state !== "running" || !spoke.rooms.includes("clinical") || spoke.ms < 300) fail("room voice did not play: " + JSON.stringify(spoke));
+  if (errors.length) fail("page errors: " + errors.join("; "));
+  await browser.close();
+}
+
 (async () => {
   const server = await serve();
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -153,6 +184,17 @@ async function run(browser, base, withClaude) {
     }
   }
   await browser.close();
+  if (fs.existsSync(path.join(WEB, "vendor", "mespeak", "VERSION"))) {
+    try {
+      await roomVoices(base);
+      console.log("ok   room voices (reverb and echo)");
+    } catch (e) {
+      ok = false;
+      console.log("FAIL room voices -", e.message);
+    }
+  } else {
+    console.log("skip room voices: run python tools/fetch_voices.py");
+  }
   server.close();
   console.log("screenshots:", SHOTS);
   process.exit(ok ? 0 : 1);

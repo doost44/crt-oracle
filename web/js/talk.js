@@ -146,6 +146,37 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
   };
   if (window.speechSynthesis) speechSynthesis.addEventListener("voiceschanged", () => (assigned = null));
 
+  // The room voices (roomvoice.js): each mask in its own space, with reverb and
+  // echo. On by default when their files are there; ?voices=plain, or the Echo
+  // button, switches to the browser's voices, which can't carry effects.
+  const room = Oracle.RoomVoice ? new Oracle.RoomVoice() : null;
+  const roomPref = new URLSearchParams(location.search).get("voices");
+  let useRoom = roomPref !== "plain";
+  try {
+    if (!roomPref && window.localStorage.getItem("oracle.voices") === "plain") useRoom = false;
+  } catch (e) {
+    /* no storage: the default stands */
+  }
+  if (room) room.load().then(showEcho);
+  function showEcho() {
+    const b = $("echo");
+    if (!b) return;
+    b.hidden = !(room && room.ready);
+    b.textContent = useRoom ? "Echo on" : "Echo off";
+    b.setAttribute("aria-pressed", String(useRoom));
+  }
+
+  async function say(line, mask) {
+    if (useRoom && room && room.ready) {
+      try {
+        return await room.speak(line, mask);
+      } catch (err) {
+        console.warn("Oracle room voice:", err);
+      }
+    }
+    return voice.speak(line, mask);
+  }
+
   // --- the second monitor ----------------------------------------------------------
 
   const COMMANDS = {
@@ -344,11 +375,11 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
       el.textContent = line;
       said.appendChild(el);
       try {
-        await voice.speak(line, mask);
+        await say(line, mask);
       } catch (err) {
         /* a voice the browser won't use: the line still shows */
       }
-      if (!voice.canSpeak) await new Promise((r) => setTimeout(r, 900 + line.length * 40));
+      if (!voice.canSpeak && !(useRoom && room && room.ready)) await new Promise((r) => setTimeout(r, 900 + line.length * 40));
     }
     state.talking = false;
   }
@@ -437,6 +468,7 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     state.over = true;
     voice.cancel();
     voice.stopSpeaking();
+    if (room) room.stop();
     setMic("idle");
     mic.disabled = true;
     note.textContent = "The Oracle is done with you.";
@@ -447,6 +479,7 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
   function begin(mask) {
     // Speak nothing once inside the click, so browsers that need a gesture let speech start.
     if (voice.canSpeak) speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+    if (room) room.unlock();
     Object.assign(state, { events: [], turn: 0, over: false, busy: false, asked: 0, commanded: -99 });
     post({ type: "reset" });
     said.textContent = heard.textContent = note.textContent = $("why").textContent = "";
@@ -471,6 +504,16 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     box.value = "";
     answer(text);
   });
+  $("echo").addEventListener("click", () => {
+    useRoom = !useRoom;
+    try {
+      window.localStorage.setItem("oracle.voices", useRoom ? "room" : "plain");
+    } catch (e) {
+      /* lasts until reload */
+    }
+    if (useRoom && room) room.unlock();
+    showEcho();
+  });
   $("stop").addEventListener("click", () => {
     if (!state.over) return finish();
     voice.stopSpeaking();
@@ -482,5 +525,5 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
   });
 
   // For tests: the state, and a way to answer without a microphone.
-  Oracle.talk = { state, answer, voice, eye };
+  Oracle.talk = { state, answer, voice, eye, room, get useRoom() { return useRoom; } };
 })();

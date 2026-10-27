@@ -174,7 +174,7 @@ async function main() {
     step("open the spoken Oracle: it hears the readout's camera is live");
     const talk = watch(await context.newPage(), "talk");
     await talk.addInitScript(stubTalkPage);
-    await talk.goto(base + "talk.html");
+    await talk.goto(base + "talk.html?voices=plain");
     await talk.waitForFunction(() => window.Oracle.talk.eye.camera === "live" && window.Oracle.talk.eye.face);
 
     step("start, and answer: the Oracle gives a command");

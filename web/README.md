@@ -219,6 +219,18 @@ where the computer has enough of them, on top of voice.js's pitch and rate.
   microphone isn't allowed, a text box takes the answers instead. The camera is
   never used, and nothing is recorded or saved.
 
+**Room voices.** Each mask speaks in its own space: Sugar in a bright hall with
+a sweet slap-back echo, Weary in a deep dark cave whose echo keeps going,
+Clinical in a small hard room with a short metallic flutter. The browser's own
+voices can't be put through effects, so these come from meSpeak (eSpeak in the
+browser, GPL; `js/roomvoice.js`) and go through Web Audio: a convolution reverb
+made from decaying noise and a feedback delay. They sound more synthetic than the
+system voices, which suits a machine in a room. Fetch them once with
+`python tools/fetch_voices.py` (into `web/vendor/mespeak/`, ignored by git);
+without them, or with the **Echo** button off (or `?voices=plain`), the page uses
+the browser's voices with no effects. The settings per mask are at the top of
+`js/roomvoice.js`.
+
 **Second monitor.** The readout screen (`readout.html`, below) is the spoken
 Oracle's eye. Open it with **Second screen** on the talk page (or in another
 window of the same browser) and drag it to the other monitor. Once its camera is
