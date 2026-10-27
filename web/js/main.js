@@ -127,6 +127,8 @@
   // --- the visit ---------------------------------------------------------------
 
   let terminal = null;
+  // Voice answers and physical actions, when switched on in the address bar (see senses.js).
+  const senses = Oracle.senses ? Oracle.senses.fromURL(location.search) : null;
 
   function startHallway() {
     terminalEl.innerHTML = "";
@@ -140,6 +142,7 @@
       onTyping: (on) => (state.talking = on),
       onChar: () => sound && sound.tick(),
     });
+    if (senses) senses.wrap(terminal, () => state.personality);
     const onPersonality = (id) => {
       setPersonality(id);
       // For the per-personality colour shift: CSS can key off body[data-personality].
@@ -154,6 +157,7 @@
       result = await Oracle.runStory(window.ORACLE_CONTENT, terminal, {
         random: Oracle.rng(seed),
         onPersonality,
+        beforeNode: senses ? (session, term) => senses.beforeNode(session, term, state.personality) : null,
       });
     }
     if (sound) sound.print(1.5, 16); // in step with the receipt's feed animation
@@ -172,6 +176,7 @@
     state.talking = false;
     delete document.body.dataset.personality;
     if (terminal) terminal.destroy();
+    if (senses) senses.stop();
     terminal = null;
     go("boot");
   }
@@ -201,7 +206,7 @@
   });
 
   // Exposed for tests and for poking at it from the browser console.
-  Oracle.app = { state, go, reset, grid, setPersonality };
+  Oracle.app = { state, go, reset, grid, setPersonality, senses };
   if (sound) sound.scene("boot");
   requestAnimationFrame(loop);
 })();

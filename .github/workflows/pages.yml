@@ -62,6 +62,9 @@ jobs:
       - name: Camera picker and face reading tests (Node)
         run: node web/tests/presence.test.js
 
+      - name: Voice and physical action tests (Node)
+        run: node web/tests/senses.test.js
+
   deploy:
     needs: test
     runs-on: ubuntu-latest

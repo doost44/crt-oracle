@@ -143,6 +143,53 @@ screen re-tints:
 The palettes are in `js/theme.js`; the faces in `js/personas.js` are 2D
 placeholders until the 3D models.
 
+## Voice answers and physical actions
+
+Switched on from the address bar, so the plain visit stays exactly as it was:
+
+| Address | What it does |
+| --- | --- |
+| `index.html?voice=1` | Answer by speaking. Words appear in the answer line as they're heard; the answer goes in when you stop talking. Menus take "the rock", "two" or "the last one". Typing still works and takes over. |
+| `index.html?speak=1` | The Oracle reads its lines aloud, in a different voice per personality. |
+| `index.html?actions=1` | Before every second question the Oracle asks for a physical action (look left, close your eyes, come closer, hold still...) and watches the webcam to check. |
+| `?actions=look_left,close_eyes` | Only ask for these. `?every=1` asks before every question. `?camera=Logitech` picks the camera whose name contains that. |
+
+Everything together: http://localhost:8000/?voice=1&speak=1&actions=1
+
+On the main page the actions use the always-on camera (`js/presence.js`), so
+the webcam is only opened once; `facetrack.js` opens its own camera only when
+that one isn't running (on the lab page). `?camera=off` switches the camera,
+and so the actions, off.
+
+**Try each part on its own first** at http://localhost:8000/lab.html: a camera
+view with the face landmarks and live readings, a button per action, a listen
+button and the three voices.
+
+Needs Chrome or Edge, and the page served (`py -m http.server 8000 -d web`): the
+camera and microphone don't work from a double-clicked file. The browser asks
+for the camera and microphone once.
+
+**Offline at the exhibit.** The face model loads from the internet unless it's
+in `web/vendor/`. Download it once (about 40 MB, not committed):
+
+```powershell
+.\.venv\Scripts\python.exe tools\fetch_vendor.py
+```
+
+Speech recognition runs on the laptop itself in newer Chrome versions when the
+language pack is installed; otherwise Chrome sends the audio to Google to
+transcribe. The lab page says which one it used.
+
+**Privacy.** No frame or sound is recorded, saved or sent by this code. Camera
+frames only exist in the `<video>` element and in the face model for one
+detection; the actions keep a handful of numbers (head turn, eye openness, face
+size) for a few seconds. The camera light goes off when the visit ends.
+
+Tests: `node web/tests/senses.test.js` (the action checks and voice matching,
+with fake faces) and `node web/tests/senses.e2e.js` (a whole visit answered by
+"voice" with a stand-in microphone; set `FACE_VIDEO` to a `.y4m` video of a face
+to run the real face model on it).
+
 ## Files
 
 ```
@@ -185,6 +232,14 @@ web/
   vendor/mediapipe/ the face tracker (tools/fetch_vision.py; not in git)
   tests/presence.test.js  camera picker and face reading: node web/tests/presence.test.js
   tests/readout.e2e.js    camera + readout in Chromium: node web/tests/readout.e2e.js [face.jpg]
+  js/actions.js     physical actions: face landmarks in, "did they do it?" out (no DOM)
+  js/voice.js       speech-to-text and the Oracle's spoken voice
+  js/facetrack.js   webcam + MediaPipe FaceLandmarker, feeding actions.js
+  js/senses.js      plugs voice and actions into the terminal and the visit
+  css/senses.css    the listening and action lines in the terminal
+  lab.html          test bench for voice and actions
+  tests/senses.test.js action checks and voice matching: node web/tests/senses.test.js
+  tests/senses.e2e.js  a visit by voice with actions, in Chromium
 ```
 
 `readout.e2e.js` gives Chromium a fake camera showing the picture you pass (any

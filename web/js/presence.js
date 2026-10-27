@@ -3,6 +3,7 @@
  *   Oracle.presence.start({ role: "main" })      // on the Oracle's screen
  *   Oracle.presence.subscribe((face) => ...)     // face: see face-reading.js, or null
  *   Oracle.presence.current                      // the latest face, or null
+ *   Oracle.presence.onResult((result, now) => ...) // each raw FaceLandmarker result
  *
  * The main screen runs the tracker and shares each result with the readout
  * screen over a BroadcastChannel (both pages must be open in the same browser).
@@ -48,11 +49,18 @@
       subscribers.add(fn);
       return () => subscribers.delete(fn);
     },
+    /* The raw tracker results, for the physical actions (senses.js), so they
+     * share this camera instead of opening a second one. */
+    onResult(fn) {
+      resultListeners.add(fn);
+      return () => resultListeners.delete(fn);
+    },
     start,
     switchCamera,
   };
 
   const subscribers = new Set();
+  const resultListeners = new Set();
   let landmarker = null;
   let stream = null;
   let lastSeen = 0;
@@ -148,6 +156,7 @@
     let face = null;
     try {
       const result = landmarker.detectForVideo(video, now);
+      resultListeners.forEach((fn) => fn(result, now));
       const lm = result.faceLandmarks && result.faceLandmarks[0];
       const shapes = result.faceBlendshapes && result.faceBlendshapes[0] && result.faceBlendshapes[0].categories;
       face = reading().describe(lm, shapes, video.videoWidth / (video.videoHeight || 1), now);
