@@ -124,7 +124,7 @@ def test_fresh_face_export_matches_committed(export_web):
     assert (a != b).mean() < 0.02, "face colour classes differ from a fresh export"
 
 
-@pytest.mark.parametrize("page", ["index.html", "clean.html", "readout.html", "talk.html", "glitch.html", "talk-glitch.html", "readout-glitch.html", "talk-plan.html", "readout-plan.html", "talk-console.html", "readout-console.html"])
+@pytest.mark.parametrize("page", ["index.html", "clean.html", "readout.html", "talk.html", "glitch.html", "talk-glitch.html", "readout-glitch.html", "talk-plan.html", "readout-plan.html", "talk-console.html", "readout-console.html", "talk-text.html", "readout-text.html"])
 def test_page_files_exist(page):
     """Every script and stylesheet a page loads is in web/ (so Pages serves it)."""
     html = (WEB / page).read_text(encoding="utf-8")

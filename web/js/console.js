@@ -11,6 +11,7 @@
  * each answer wears it down, a mask switch or a command jolts it, and a new visitor
  * brings it back clean. The start screen's title is drawn in the field too, in
  * dense tiny glyphs, and letters of the page's text turn into odd ones now and then.
+ * (The start screen's menu and its arrow keys are menu.js.)
  *
  * It stands in for signal.js on these pages, with the same calls, so talk.js and
  * readout.js treat both looks alike:
@@ -720,41 +721,6 @@
       else wear(Math.min(1, Math.round((state.floor + 0.2) * 5) / 5));
       kick({ strength: 0.8 });
     }
-  });
-
-  // --- the start menu: a VCR's on-screen menu, worked with the arrow keys -----------------
-
-  function menuItems() {
-    return Array.from(document.querySelectorAll(".start:not([hidden]) .menu button")).filter((b) => b.offsetParent);
-  }
-  function select(b) {
-    for (const o of document.querySelectorAll(".menu button")) o.classList.toggle("sel", o === b);
-  }
-  document.addEventListener("keydown", (e) => {
-    const items = menuItems();
-    if (!items.length) return;
-    const at = items.findIndex((b) => b.classList.contains("sel"));
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      const next = items[(Math.max(0, at) + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length];
-      select(next);
-      next.focus({ preventScroll: true });
-      kick({ strength: 0.25, ms: 160 });
-    } else if (e.key === "ArrowRight" && at >= 0) {
-      e.preventDefault();
-      items[at].click();
-    }
-  });
-  document.addEventListener("pointerover", (e) => {
-    const b = e.target.closest && e.target.closest(".menu button");
-    if (b) select(b);
-  });
-  document.addEventListener("focusin", (e) => {
-    if (e.target.closest && e.target.closest(".menu button")) select(e.target);
-  });
-  document.addEventListener("DOMContentLoaded", () => {
-    const first = menuItems()[0];
-    if (first) select(first);
   });
 
   Oracle.signal = {

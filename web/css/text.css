@@ -1,0 +1,129 @@
+/* The text-mode look (talk-text.html, readout-text.html): an old home computer's
+ * console. Pale blue letters on a blue screen, one square blocky font at one size
+ * for everything, set on whole lines, under curved glass. Loaded last. grid.js keeps
+ * --glyph (the font size) and --cell (the line height) the same as the canvas's
+ * characters, so the figure and the page's text are one size; theme.js supplies the
+ * colours. */
+
+:root {
+  --text-font: "Press Start 2P", "DejaVu Sans Mono", Consolas, "Lucida Console", monospace;
+  --glyph: 10px;
+  --cell: 12.5px;
+  --shine: 0 0 4px rgba(201, 210, 255, 0.55), 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+html, body { background: var(--bg); }
+#screen { filter: drop-shadow(0 0 3px rgba(201, 210, 255, 0.45)); }
+
+.start, .talk {
+  font-family: var(--text-font); font-size: var(--glyph); line-height: var(--cell);
+  font-weight: normal; letter-spacing: 0; color: var(--fg); text-shadow: var(--shine);
+}
+.start button, .talk button, .talk input {
+  font: inherit; letter-spacing: 0; text-shadow: inherit; color: var(--fg);
+  background: transparent; border: 0; box-shadow: none; padding: 0; margin: 0; min-width: 0; border-radius: 0;
+}
+
+/* --- the start screen: a boot screen with a menu on it -------------------------------- */
+
+.start {
+  display: block; background: transparent; text-align: left;
+  padding: 6vh max(16px, 6vw); overflow: auto;
+}
+.screen-text { max-width: 64ch; }
+.start h1, .start p, .start pre, .start ul { font: inherit; margin: 0 0 var(--cell); max-width: none; letter-spacing: 0; }
+.start h1, .start .banner { text-align: center; text-transform: uppercase; }
+.start .tight { margin-bottom: 0; }
+.start .rule { white-space: pre; text-transform: uppercase; margin-bottom: 0; }
+.start .menu { display: flex; flex-direction: column; align-items: flex-start; padding-left: 2ch; margin: 0; }
+.start .picks, .start .second { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin: 0; }
+.start .menu button { text-transform: uppercase; text-align: left; cursor: pointer; padding: 0 1ch; margin-left: -1ch; }
+.start .menu button.sel, .start .menu button:hover { background: var(--fg); color: var(--bg); text-shadow: none; }
+.start .menu button:focus { outline: none; }
+.start .menu button::before, .start .menu button::after { content: none; }
+.start .menu button:focus-visible:not(.sel) { outline: 1px dashed var(--fg); }
+.start .keys { white-space: pre; }
+/* The small print, as a crash screen lists its options: "* " and a hanging indent. */
+.start .notes { list-style: none; padding: 0; }
+.start .notes li { padding-left: 2ch; text-indent: -2ch; }
+.start .notes li + li { margin-top: 0; }
+.start .notes li::before { content: "* "; }
+.cursor { margin: 0; height: var(--cell); }
+.cursor::before {
+  content: ""; display: inline-block; width: 1ch; height: var(--glyph); vertical-align: top;
+  margin-top: calc((var(--cell) - var(--glyph)) / 2);
+  background: var(--fg); box-shadow: var(--shine); animation: blink 1s steps(1, end) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* --- the talking screen: the conversation as console lines, under the figure ----------- */
+
+.talk {
+  align-items: flex-start; text-align: left; gap: 0;
+  padding: 0 max(16px, 6vw) 5vh;
+}
+.talk > * { max-width: 64ch; }
+.masks { gap: 0 2ch; flex-wrap: wrap; justify-content: flex-start; margin: 0 0 var(--cell); }
+.masks::before { content: "MASK:"; }
+.masks li { border: 0; padding: 0 1ch; margin-left: -1ch; font-size: inherit; letter-spacing: 0; color: var(--dim); background: transparent; gap: 1ch; text-transform: uppercase; }
+.masks li span { text-transform: uppercase; }
+.masks li.on { background: var(--fg); color: var(--bg); text-shadow: none; }
+/* The Oracle's notes to itself, as a program's remarks. */
+.why, .note { font-size: inherit; font-weight: normal; color: var(--dim); max-width: 64ch; }
+.why:not(:empty)::before { content: "REM "; }
+.said { font-size: inherit; line-height: inherit; font-weight: normal; min-height: calc(var(--cell) * 3); max-width: 64ch; gap: 0; margin: var(--cell) 0 0; }
+.said .line { opacity: 1; color: var(--dim); }
+.said .line.now { color: var(--fg); }
+.said .line::before { content: "ORACLE: "; }
+body[data-personality="sugar"] .said .line::before { content: "SUGAR: "; }
+body[data-personality="weary"] .said .line::before { content: "WEARY: "; }
+body[data-personality="clinical"] .said .line::before { content: "CLINICAL: "; }
+.said .line.now::after { content: "_"; animation: blink 1s steps(1, end) infinite; }
+.heard { font-size: inherit; color: var(--fg); min-height: var(--cell); max-width: 64ch; margin-bottom: var(--cell); }
+.heard::before { content: "YOU: "; }
+.heard:empty::before { content: ""; }
+
+.controls { gap: 0 2ch; justify-content: flex-start; margin-bottom: var(--cell); }
+.mic { gap: 0; min-width: 0; text-transform: uppercase; cursor: pointer; }
+.mic-dot { display: none; }
+.mic::before, .typed button::before, .quiet::before { content: "[ "; }
+.mic::after, .typed button::after, .quiet::after { content: " ]"; }
+.typed button, .quiet { text-transform: uppercase; cursor: pointer; }
+.quiet { color: var(--fg); }
+.mic:not(:disabled):hover, .typed button:hover, .quiet:hover, .controls button:focus-visible {
+  background: var(--fg); color: var(--bg); text-shadow: none; outline: none;
+}
+.mic[data-state="listening"] { background: var(--fg); color: var(--bg); text-shadow: none; animation: blink 1s steps(1, end) infinite; }
+.typed { gap: 1ch; align-items: baseline; }
+.typed::before { content: ">"; }
+.typed input { width: 26ch; caret-color: var(--fg); border-bottom: 1px dashed var(--dim); }
+.typed input:focus { outline: none; border-bottom-color: var(--fg); }
+.typed input::placeholder { color: var(--dim); text-transform: uppercase; }
+
+/* The start screen covers the talking screen. */
+.start:not([hidden]) { background: var(--bg); }
+
+/* --- the tube --------------------------------------------------------------------------- */
+
+/* A faint bloom in the middle, scanlines, the glass going dark at the curved edges,
+ * and the bezel round it. */
+.crt-glass, .readout-glass {
+  position: fixed; inset: 0; pointer-events: none; z-index: 5; mix-blend-mode: normal;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, rgba(150, 170, 255, 0.08), transparent 70%),
+    repeating-linear-gradient(to bottom, rgba(0, 0, 40, 0.16) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse 118% 112% at 50% 48%, transparent 58%, rgba(5, 10, 70, 0.4) 84%, rgba(2, 4, 30, 0.92) 100%);
+  border-radius: 3.5vmin;
+  box-shadow: inset 0 0 6vmin rgba(2, 6, 40, 0.6), 0 0 0 2vmin #05060c;
+  animation: flicker 0.12s steps(2, end) infinite;
+}
+@keyframes flicker { 50% { opacity: 0.97; } }
+@media (prefers-reduced-motion: reduce) {
+  .crt-glass, .readout-glass, .cursor::before, .said .line.now::after, .mic[data-state="listening"] { animation: none; }
+}
+
+/* A phone: narrower margins. */
+@media (max-width: 560px) {
+  .start, .talk { padding-left: 16px; padding-right: 16px; }
+  .start .menu { padding-left: 1ch; }
+}

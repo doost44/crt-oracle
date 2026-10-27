@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CRT Oracle: readout (text mode)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
+<link rel="stylesheet" href="css/readout.css">
+<link rel="stylesheet" href="css/text.css">
+</head>
+<body>
+<!-- The second monitor: the participant's live face under made-up surveillance readouts.
+     Theatre only. Nothing identifies anyone, and no picture is stored or sent. -->
+<canvas id="readout" aria-label="Live camera picture with face tracking readouts"></canvas>
+<div class="readout-glass" aria-hidden="true"></div>
+
+<!-- The text-mode look: the old home computer's console, the camera picture drawn in
+     its characters. -->
+<script>window.ORACLE_LOOK = "text";</script>
+<script src="js/camera.js"></script>
+<script src="js/vision.js"></script>
+<script src="js/face-reading.js"></script>
+<script src="js/presence.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/readout.js"></script>
+</body>
+</html>

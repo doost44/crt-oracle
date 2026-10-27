@@ -142,6 +142,23 @@
     for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, tube, { orange: accent[id] });
   }
 
+  // The text-mode look (talk-text.html sets window.ORACLE_LOOK = "text"): an old home
+  // computer's console, pale blue letters on a blue screen, the same for every mask.
+  if (window.ORACLE_LOOK === "text") {
+    const screen = {
+      bg: "#2436d6",
+      fg: "#c9d2ff",
+      dim: "#8494f0",
+      bright: "#ffffff",
+      orange: "#ffffff",
+      red: "#ffffff",
+      teal: "#a9b6ff",
+      ink: "#2436d6",
+      bleed: "#c9d2ff",
+    };
+    for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, screen);
+  }
+
   const KEYS = Object.keys(THEMES.neutral);
   const SWITCH_MS = 900;
 

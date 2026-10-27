@@ -22,12 +22,16 @@
     teal: "#37d6c5",
     ink: "#0b1a8c",
   });
-  const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
+  // The text-mode look (talk-text.html) draws in the same square blocky font as its
+  // page text, at the same size, a little apart line to line like an old home computer.
+  const TEXT = window.ORACLE_LOOK === "text";
+  const FONT = TEXT ? '"Press Start 2P", "DejaVu Sans Mono", Consolas, monospace' : 'Consolas, "Lucida Console", "Courier New", monospace';
+  const LINE = TEXT ? 1.25 : 1; // row height over font size
   // The clean, glitch, drawing and console looks use heavier type, so the two tones read well.
   const WEIGHT = ["clean", "glitch", "plan", "console"].includes(window.ORACLE_LOOK) ? "bold " : "";
-  // About 60 rows tall on any screen (columns follow the width); the console look's
-  // characters are smaller, so its figures are finer.
-  const TARGET_ROWS = window.ORACLE_LOOK === "console" ? 84 : 60;
+  // About 60 rows tall on any screen (columns follow the width); the console and
+  // text-mode looks' characters are smaller, so their figures are finer.
+  const TARGET_ROWS = window.ORACLE_LOOK === "console" ? 84 : TEXT ? 64 : 60;
 
   class Grid {
     constructor(canvas) {
@@ -42,7 +46,8 @@
       const w = window.innerWidth;
       const h = window.innerHeight;
       this.cellH = Math.max(8, Math.min(24, Math.floor(h / TARGET_ROWS)));
-      this.cellW = Math.round(this.cellH * 0.6 * 100) / 100;
+      this.fontPx = Math.round(this.cellH / LINE);
+      this.cellW = TEXT ? this.fontPx : Math.round(this.cellH * 0.6 * 100) / 100;
       this.cols = Math.max(20, Math.floor(w / this.cellW));
       this.rows = Math.max(10, Math.floor(h / this.cellH));
       this.offsetX = (w - this.cols * this.cellW) / 2;
@@ -51,6 +56,7 @@
       this.canvas.height = Math.floor(h * dpr);
       this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       document.documentElement.style.setProperty("--cell", this.cellH + "px");
+      document.documentElement.style.setProperty("--glyph", this.fontPx + "px");
       const n = this.cols * this.rows;
       this.chars = new Array(n).fill(" ");
       this.colors = new Array(n).fill("fg");
@@ -92,7 +98,7 @@
       const ctx = this.ctx;
       ctx.fillStyle = PALETTE.bg;
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      ctx.font = `${WEIGHT}${this.cellH}px ${FONT}`;
+      ctx.font = `${WEIGHT}${this.fontPx}px ${FONT}`;
       ctx.textBaseline = "top";
       let last = null;
       for (let y = 0; y < this.rows; y++) {
@@ -106,7 +112,7 @@
             ctx.fillStyle = PALETTE[color] || color;
             last = color;
           }
-          ctx.fillText(ch, ox + x * this.cellW, this.offsetY + y * this.cellH);
+          ctx.fillText(ch, ox + x * this.cellW, this.offsetY + y * this.cellH + (this.cellH - this.fontPx) / 2);
         }
       }
     }

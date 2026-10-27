@@ -229,8 +229,24 @@ and then, more the worse it gets.
 
 The field is `js/console.js` (a canvas over the page, redrawn about 15 times a
 second from random characters; nothing is kept), and it takes the place of
-`js/signal.js` on these pages with the same calls. `css/console.css` does the
-text and the glass. Test: `LOOK=console node web/tests/talk_readout.e2e.js face.jpg`.
+`js/signal.js` on these pages with the same calls; the menu's keys are
+`js/menu.js`. `css/console.css` does the text and the glass. Test: `LOOK=console node web/tests/talk_readout.e2e.js face.jpg`.
+
+### Text-mode look (`talk-text.html`, `readout-text.html`)
+
+Just a console, like an old home computer's or a crash screen: pale blue letters
+on a blue screen, in one square blocky font (Press Start 2P, from Google Fonts;
+without it the system's monospace) at one small size for everything, set on
+whole lines under curved, scanlined glass. The start screen is a boot screen
+(`**** THE ORACLE BASIC V2 ****`, `READY.`, a blinking cursor) with the same
+VCR-style menu as the console look, worked with the arrow keys and Enter. The
+figure is drawn in the same characters at the same size as the text, and the
+conversation runs underneath it as console lines (`SUGAR: ...`, `YOU: ...`, the
+Oracle's notes as `REM`). Nothing falls apart in this one. The camera screen is
+the same console, with the camera picture drawn in its characters.
+
+`css/text.css` does the page; grid.js and readout.js switch font and colours on
+`window.ORACLE_LOOK = "text"`. Test: `LOOK=text node web/tests/talk_readout.e2e.js face.jpg`.
 
 ## Voice answers and physical actions
 
@@ -332,7 +348,8 @@ web/
   js/theme.js       the palette per personality, and the flickery switch between them
   js/signal.js      the glitch look's failing screen: haze, smears, drips, stuck blocks, roll
   js/plans.js       the drawing look's turning stack of technical drawings
-  js/console.js     the console look's drifting field of tiny glyphs, and its VCR-style menu
+  js/console.js     the console look's drifting field of tiny glyphs
+  js/menu.js        the console and text-mode looks' VCR-style start menu (arrow keys)
   js/grid.js        the character screen: one canvas, a grid of cells
   js/hallway.js     the ASCII hallway drift, and the VHS wobble and edge static
   js/face.js        the painted sun face, lit from the height and sculpt maps
