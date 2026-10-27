@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Oracle senses lab</title>
+<link rel="stylesheet" href="css/oracle.css">
+<style>
+  /* A plain test bench for voice and physical actions. Not part of the visit. */
+  html, body { overflow: auto; }
+  body { padding: 2ch 3ch 4ch; line-height: 1.35; text-shadow: 0 0 4px rgba(255, 255, 255, 0.5); }
+  h1 { font-size: 1.3em; margin: 0 0 0.3em; letter-spacing: 0.1em; }
+  h2 { font-size: 1em; margin: 0 0 0.6em; color: var(--dim); letter-spacing: 0.08em; }
+  p.note { color: var(--dim); max-width: 80ch; margin: 0 0 1.2em; }
+  a { color: var(--bright); }
+  .cols { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr); gap: 3ch; align-items: start; }
+  @media (max-width: 760px) { .cols { grid-template-columns: 1fr; } }
+  section { border: 1px solid var(--dim); padding: 1.2ch 1.6ch 1.6ch; margin-bottom: 2ch; }
+  button, select, input[type=text] {
+    font: inherit; color: var(--fg); background: transparent; border: 1px solid var(--fg);
+    padding: 0.2em 0.7ch; margin: 0 0.6ch 0.6ch 0; cursor: pointer;
+  }
+  input[type=text] { cursor: text; width: 100%; }
+  button:hover, button.on { background: var(--fg); color: var(--bg); text-shadow: none; }
+  button:disabled { opacity: 0.4; cursor: default; background: transparent; color: var(--fg); }
+  select option { background: var(--bg); }
+  .cam { position: relative; width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--dim); background: var(--ink); overflow: hidden; }
+  .cam video, .cam canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .cam video { filter: grayscale(1) contrast(1.2) brightness(0.8); opacity: 0.55; }
+  .cam .idle { position: absolute; inset: 0; display: grid; place-items: center; color: var(--dim); }
+  .cam .idle[hidden] { display: none; }
+  .meters { display: grid; grid-template-columns: 8ch 1fr 7ch; gap: 0.15em 1ch; margin-top: 1em; white-space: pre; }
+  .meters .bar { color: var(--dim); overflow: hidden; }
+  .status { white-space: pre-wrap; min-height: 2.6em; margin: 0.4em 0 0.8em; }
+  .said { color: var(--bright); }
+  .heard { min-height: 2.6em; border-left: 2px solid var(--dim); padding-left: 1ch; margin: 0.4em 0 0.8em; white-space: pre-wrap; }
+  .small { color: var(--dim); font-size: 0.85em; }
+</style>
+</head>
+<body>
+<h1>ORACLE SENSES LAB</h1>
+<p class="note">
+  Try the voice and the physical actions on their own, before they go into the visit.
+  Nothing is recorded or saved: the camera image only lives in this page while it's open.
+  Serve the page (<code>py -m http.server 8000 -d web</code>, then
+  <a href="http://localhost:8000/lab.html">localhost:8000/lab.html</a>); a double-clicked file can't use the camera.
+  The full visit with everything on:
+  <a id="visit" href="index.html?voice=1&amp;speak=1&amp;actions=1">index.html?voice=1&amp;speak=1&amp;actions=1</a>
+</p>
+
+<div class="cols">
+  <div>
+    <section>
+      <h2>CAMERA + FACE LANDMARKS</h2>
+      <div class="cam">
+        <video id="video" muted playsinline></video>
+        <canvas id="dots"></canvas>
+        <div class="idle" id="idle">camera off</div>
+      </div>
+      <div class="status" id="camStatus"></div>
+      <button id="camBtn" type="button">start camera</button>
+      <input id="camName" type="text" placeholder="camera name contains... (blank: first real camera)" style="width: auto; min-width: 24ch">
+      <div class="meters" id="meters"></div>
+      <p class="small">The picture is mirrored like a mirror. "left" in the readings and the actions is always the visitor's own left.</p>
+    </section>
+  </div>
+
+  <div>
+    <section>
+      <h2>PHYSICAL ACTIONS</h2>
+      <label>voice <select id="who">
+        <option value="">default</option>
+        <option value="sugar">sugar</option>
+        <option value="weary">weary</option>
+        <option value="clinical">clinical</option>
+      </select></label>
+      <label><input type="checkbox" id="speakActions"> speak the request</label>
+      <div id="actionBtns" style="margin-top: 0.8em"></div>
+      <div class="status" id="actionStatus">start the camera, then pick an action</div>
+    </section>
+
+    <section>
+      <h2>VOICE IN</h2>
+      <button id="listenBtn" type="button">listen</button>
+      <span class="small" id="listenWhere"></span>
+      <div class="heard" id="heard"></div>
+      <div class="small" id="choice">Say "the rock", "two" or "the last one" to test picking from sun / rock / tree.</div>
+    </section>
+
+    <section>
+      <h2>VOICE OUT</h2>
+      <input id="line" type="text" value="THAT WAS NOT AN OPTION. I WILL ASK AGAIN.">
+      <div style="margin-top: 0.6em">
+        <button type="button" data-say="">default</button>
+        <button type="button" data-say="sugar">sugar</button>
+        <button type="button" data-say="weary">weary</button>
+        <button type="button" data-say="clinical">clinical</button>
+      </div>
+      <div class="small" id="voiceName"></div>
+    </section>
+  </div>
+</div>
+
+<script src="js/actions.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/facetrack.js"></script>
+<script>
+(function () {
+  "use strict";
+  const Oracle = window.Oracle;
+  const $ = (id) => document.getElementById(id);
+  const voice = new Oracle.Voice({ speak: true });
+
+  // --- camera ------------------------------------------------------------------
+  const video = $("video");
+  const canvas = $("dots");
+  const ctx = canvas.getContext("2d");
+  let tracker = null;
+
+  const METERS = [
+    ["yaw", -1, 1, "+ = their left"],
+    ["pitch", -0.5, 0.5, "+ = up"],
+    ["gaze", -1, 1, ""],
+    ["eyes", 0, 1, "1 = shut"],
+    ["mouth", 0, 1, ""],
+    ["smile", 0, 1, ""],
+    ["size", 0, 0.8, "closer = bigger"],
+  ];
+  function drawMeters(f) {
+    const W = 20;
+    $("meters").innerHTML = "";
+    for (const [k, lo, hi] of METERS) {
+      const v = f ? f[k] : null;
+      const n = v == null ? 0 : Math.round(Math.max(0, Math.min(1, (v - lo) / (hi - lo))) * W);
+      for (const [cls, text] of [["", k], ["bar", "█".repeat(n) + "░".repeat(W - n)], ["", v == null ? "--" : v.toFixed(2)]]) {
+        const d = document.createElement("div");
+        d.className = cls;
+        d.textContent = text;
+        $("meters").appendChild(d);
+      }
+    }
+  }
+  drawMeters(null);
+
+  // Landmark dots only: the points MediaPipe found, never the picture itself.
+  function drawDots(result) {
+    const w = (canvas.width = canvas.clientWidth);
+    const h = (canvas.height = canvas.clientHeight);
+    ctx.clearRect(0, 0, w, h);
+    const lm = result && result.faceLandmarks && result.faceLandmarks[0];
+    if (!lm) return;
+    // object-fit: cover maps the 4:3 video onto the box; mirror is done in CSS
+    const vw = video.videoWidth || 640, vh = video.videoHeight || 480;
+    const scale = Math.max(w / vw, h / vh);
+    const ox = (w - vw * scale) / 2, oy = (h - vh * scale) / 2;
+    ctx.fillStyle = "#ffffff";
+    for (let i = 0; i < lm.length; i += 2) ctx.fillRect(ox + lm[i].x * vw * scale - 1, oy + lm[i].y * vh * scale - 1, 2, 2);
+    ctx.fillStyle = "#ff9b2f";
+    for (const i of [Oracle.Actions.P.nose, Oracle.Actions.P.cheekL, Oracle.Actions.P.cheekR]) {
+      ctx.fillRect(ox + lm[i].x * vw * scale - 3, oy + lm[i].y * vh * scale - 3, 6, 6);
+    }
+  }
+
+  $("camBtn").addEventListener("click", async () => {
+    if (tracker) {
+      tracker.stop();
+      tracker = null;
+      drawDots(null);
+      drawMeters(null);
+      $("idle").hidden = false;
+      $("camBtn").textContent = "start camera";
+      $("camStatus").textContent = "camera off";
+      return;
+    }
+    $("camStatus").textContent = "loading the face model...";
+    $("camBtn").disabled = true;
+    try {
+      tracker = new Oracle.FaceTrack({
+        video,
+        camera: $("camName").value.trim() || null,
+        onFrame: ({ result, features }) => {
+          drawDots(result);
+          drawMeters(features);
+        },
+      });
+      await tracker.start();
+      $("idle").hidden = true;
+      $("camBtn").textContent = "stop camera";
+      $("camStatus").textContent = `camera: ${tracker.cameraLabel || "(no name)"}`;
+    } catch (err) {
+      tracker = null;
+      $("camStatus").textContent = `couldn't start: ${err.message}`;
+    } finally {
+      $("camBtn").disabled = false;
+    }
+  });
+
+  // --- actions -----------------------------------------------------------------
+  let running = null;
+  for (const id of Oracle.Actions.ids) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = Oracle.Actions.ACTIONS[id].label;
+    b.addEventListener("click", () => runAction(id, b));
+    $("actionBtns").appendChild(b);
+  }
+  async function runAction(id, button) {
+    if (!tracker) return ($("actionStatus").textContent = "start the camera first");
+    if (running) running.abort();
+    const ctrl = (running = new AbortController());
+    document.querySelectorAll("#actionBtns button").forEach((x) => x.classList.toggle("on", x === button));
+    const who = $("who").value || null;
+    const ask = Oracle.Actions.line("ask", id, who);
+    $("actionStatus").innerHTML = "";
+    const said = document.createElement("div");
+    said.className = "said";
+    said.textContent = ask;
+    const bar = document.createElement("div");
+    $("actionStatus").append(said, bar);
+    if ($("speakActions").checked) await voice.speak(ask, who);
+    if (ctrl.signal.aborted) return;
+    const N = 16;
+    const final = await Oracle.watchAction(tracker, id, {
+      signal: ctrl.signal,
+      onUpdate: (s) => {
+        const n = Math.round((s.progress || 0) * N);
+        const score = s.score != null ? ` score ${s.score.toFixed(2)}` : "";
+        bar.textContent = `>${id} [${"█".repeat(n)}${"░".repeat(N - n)}] ${s.status}${s.hint ? " " + s.hint : ""}${score}`;
+      },
+    });
+    if (final.status === "cancelled") return;
+    button.classList.remove("on");
+    const reply = Oracle.Actions.line(final.status === "done" ? "done" : "timeout", id, who);
+    const r = document.createElement("div");
+    r.className = "said";
+    r.textContent = `${final.status.toUpperCase()}: ${reply}`;
+    $("actionStatus").appendChild(r);
+    if ($("speakActions").checked) voice.speak(reply, who);
+    running = null;
+  }
+
+  // --- voice in ----------------------------------------------------------------
+  if (!voice.canListen) {
+    $("listenBtn").disabled = true;
+    $("listenWhere").textContent = "this browser has no speech recognition (use Chrome or Edge)";
+  }
+  let listening = false;
+  $("listenBtn").addEventListener("click", async () => {
+    if (listening) return voice.cancel();
+    listening = true;
+    $("listenBtn").classList.add("on");
+    $("listenBtn").textContent = "listening... (click to stop)";
+    $("heard").textContent = "";
+    const text = await voice.listen({ onHeard: (t, final) => ($("heard").textContent = t + (final ? "" : " ...")) });
+    listening = false;
+    $("listenBtn").classList.remove("on");
+    $("listenBtn").textContent = "listen";
+    $("listenWhere").textContent = voice.where === "device" ? "transcribed on this laptop" : voice.where === "online" ? "transcribed by the browser's online service" : "";
+    $("heard").textContent = text || "(heard nothing)";
+    if (text) {
+      const i = Oracle.Voice.matchChoice(text, ["A sun", "A rock", "A tree"]);
+      $("choice").textContent = i < 0 ? "as a choice: not clear" : `as a choice: ${["sun", "rock", "tree"][i]}`;
+    }
+  });
+
+  // --- voice out ---------------------------------------------------------------
+  if (!voice.canSpeak) $("voiceName").textContent = "this browser can't speak";
+  document.querySelectorAll("[data-say]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const who = b.dataset.say || null;
+      voice.stopSpeaking();
+      await voice._voicesReady();
+      const v = voice._pickVoice(who);
+      $("voiceName").textContent = v ? `voice: ${v.name}${v.localService ? " (offline)" : " (online)"}` : "";
+      voice.speak($("line").value, who);
+    })
+  );
+})();
+</script>
+</body>
+</html>
