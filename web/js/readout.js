@@ -31,8 +31,8 @@
     sugar: { fg: [255, 184, 82], bg: "#0d0702" },
     clinical: { fg: [214, 232, 255], bg: "#03060c" },
   };
-  // The glitch look (readout-glitch.html): white on black for everyone, torn and
-  // colour-split by signal.js, with colour bars where there is no picture.
+  // The glitch look (readout-glitch.html): white on black for everyone, on the screen
+  // of a failing machine (signal.js) that falls apart with the Oracle's.
   const SIGNAL = window.ORACLE_LOOK === "glitch" && Oracle.signal;
   if (SIGNAL) for (const id of Object.keys(TINTS)) TINTS[id] = { fg: [236, 238, 246], bg: "#000000" };
   const C = {
@@ -603,7 +603,7 @@
       ended: 0,
     };
     logEntry(`INSTRUCTION: ${state.command.label.toUpperCase()}`, true);
-    if (SIGNAL) SIGNAL.kick({ strength: 1, bars: true, ms: 700 });
+    if (SIGNAL) SIGNAL.kick({ strength: 1, ms: 700 });
   }
 
   // Every tracker result while a command is open: is the visitor doing it?
@@ -619,7 +619,7 @@
       c.ended = performance.now();
       presence.post({ type: "command-result", id: c.id, action: c.action, status: r.status, hint: r.hint || null });
       logEntry(r.status === "done" ? `COMPLIED: ${c.label.toUpperCase()}` : `NON-COMPLIANCE: ${c.label.toUpperCase()}`, true);
-      if (SIGNAL) SIGNAL.kick({ strength: r.status === "done" ? 0.5 : 1, bars: r.status !== "done", ms: 600 });
+      if (SIGNAL) SIGNAL.kick({ strength: r.status === "done" ? 0.5 : 1, ms: r.status === "done" ? 500 : 1000 });
     }
   });
 
@@ -695,11 +695,7 @@
    * Oracle's notes and what the visitor said show without a camera too. */
   function drawNoSignal(tint) {
     const v = L.video;
-    if (SIGNAL) {
-      SIGNAL.bars(ctx, v.x, v.y, v.w, v.h, performance.now() / 1000);
-      ctx.fillStyle = "rgba(0,0,0,0.78)";
-      ctx.fillRect(v.x + v.w * 0.06, v.y + v.h / 2 - L.fs * 5, v.w * 0.88, L.fs * 8.5);
-    } else drawNoise(v, tint, 0.35);
+    drawNoise(v, tint, 0.35);
     const cx = v.x + v.w / 2;
     const cy = v.y + v.h / 2;
     text("NO SIGNAL", cx, cy - L.fs * 3, C.head, L.fs * 2.4, "center");
@@ -774,11 +770,11 @@
       console.warn(err);
     } finally {
       if (SIGNAL) {
-        // A burst when the mask changes; the bars flash through on the big ones.
+        // A jolt when the mask changes, in that mask's colours.
         const who = state.oracle.personality || null;
-        if (who !== lastWho) SIGNAL.kick({ strength: 0.9, bars: true, ms: 800 });
+        if (who !== lastWho) SIGNAL.kick({ strength: 0.9, ms: 800 });
         lastWho = who;
-        SIGNAL.flash(ctx, W, H, now);
+        SIGNAL.mood = who;
         SIGNAL.post(canvas, now, { split: 0.8 });
       }
     }
@@ -791,10 +787,13 @@
     if (!msg || msg.from !== "main") return;
     state.linked = performance.now();
     if (msg.type === "oracle") state.oracle = { scene: msg.scene, personality: msg.personality, talking: msg.talking };
+    // The glitch look: the camera screen comes apart as fast as the Oracle's.
+    if (SIGNAL && msg.type === "oracle" && typeof msg.decay === "number") SIGNAL.wear(msg.decay);
     if (msg.type === "said" && msg.who === "visitor") state.heard = String(msg.text || "").slice(0, 140);
     if (msg.type === "note" && msg.text) logEntry(`${(msg.personality || "oracle").toUpperCase()}: ${String(msg.text).toUpperCase()}`, true);
     if (msg.type === "command") startCommand(msg);
     if (msg.type === "reset") {
+      if (SIGNAL) SIGNAL.reset();
       state.heard = "";
       state.command = null;
     }

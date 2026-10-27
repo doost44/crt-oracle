@@ -90,25 +90,29 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
         look: null, // no camera: the figure looks around the room on its own
       });
       if (Oracle.vhs && Oracle.theme.switching) Oracle.vhs(grid, t, 0.4, Oracle.rng(Math.floor(t * 30) + 1));
+    } else if (Oracle.signal) {
+      memoryDump(now / 1000);
     }
     grid.render();
-    // The glitch look (talk-glitch.html): colour bars behind the start screen, then
-    // the whole picture split and torn (signal.js).
-    if (Oracle.signal) {
-      const ctx = grid.ctx;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      if (!state.mask) Oracle.signal.bars(ctx, w * 0.04, h * 0.05, w * 0.92, h * 0.9, now / 1000, { full: true });
-      else {
-        // The poster's blocks along the bottom edge, so the bars never quite leave.
-        Oracle.signal.bars(ctx, 0, h * 0.975, w, h * 0.025, now / 1000);
-        Oracle.signal.flash(ctx, w, h, now);
-      }
-      Oracle.signal.post(grid.canvas, now);
-    }
+    // The glitch look (talk-glitch.html): the screen of a failing machine (signal.js).
+    if (Oracle.signal) Oracle.signal.post(grid.canvas, now);
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
+
+  /* The glitch look's start screen: the machine's memory scrolling past, dimly, on
+   * the right, for the faults to smear and drip. */
+  function memoryDump(t) {
+    const x0 = Math.floor(grid.cols * 0.56);
+    const scroll = Math.floor(t * 3);
+    for (let y = 0; y < grid.rows; y++) {
+      const r = Oracle.rng((y + scroll) * 2654435761 + 99);
+      const addr = (0x7f00 + (y + scroll) * 16).toString(16).padStart(6, "0");
+      let line = addr + "  ";
+      for (let i = 0; i < 8; i++) line += Math.floor(r() * 256).toString(16).padStart(2, "0") + " ";
+      grid.text(x0, y, line, r() < 0.08 ? "fg" : r() < 0.04 ? "orange" : "dim");
+    }
+  }
 
   function wearMask(mask, why) {
     if (!MASKS.includes(mask)) mask = state.mask || "sugar";
@@ -117,7 +121,7 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
       state.mask = mask;
       state.maskSince = performance.now();
       Oracle.theme.set(mask);
-      if (Oracle.signal) Oracle.signal.kick({ strength: switched ? 1 : 0.7, bars: true, ms: switched ? 900 : 600 });
+      if (Oracle.signal) Oracle.signal.kick({ strength: switched ? 1 : 0.6, ms: switched ? 900 : 500 });
       document.body.dataset.personality = mask;
       document.querySelectorAll(".masks li").forEach((li) => li.classList.toggle("on", li.dataset.mask === mask));
     }
@@ -197,6 +201,8 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
   let lastShared = "";
   function shareState(force) {
     const s = { type: "oracle", scene: state.over ? "done" : !state.mask ? "waiting" : state.watching ? "watching" : state.busy ? "thinking" : "listening", personality: state.mask, talking: state.talking };
+    // The glitch look: how broken the machine is, so the second screen falls apart with it.
+    if (Oracle.signal) s.decay = Math.round(Oracle.signal.decay * 20) / 20;
     const key = JSON.stringify(s);
     if (force || key !== lastShared) post(s);
     lastShared = key;
@@ -425,6 +431,8 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     heard.textContent = text;
     post({ type: "said", who: "visitor", text });
     state.turn += 1;
+    // The glitch look: each answer wears the machine down a little more.
+    if (Oracle.signal) Oracle.signal.wear((state.turn / MAX_TURNS) * 0.95);
     const seconds = state.asked ? Math.round((performance.now() - state.asked) / 1000) : null;
     state.events.push({ who: "visitor", text, seconds });
     await oracleTurn(null);
@@ -453,6 +461,11 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
 
   function finish() {
     state.over = true;
+    // The glitch look: done with you, the machine gives out.
+    if (Oracle.signal) {
+      Oracle.signal.wear(1);
+      Oracle.signal.kick({ strength: 1, ms: 1400 });
+    }
     voice.cancel();
     voice.stopSpeaking();
     setMic("idle");
@@ -466,6 +479,7 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     // Speak nothing once inside the click, so browsers that need a gesture let speech start.
     if (voice.canSpeak) speechSynthesis.speak(new SpeechSynthesisUtterance(""));
     Object.assign(state, { events: [], turn: 0, over: false, busy: false, asked: 0, commanded: -99 });
+    if (Oracle.signal) Oracle.signal.reset();
     post({ type: "reset" });
     said.textContent = heard.textContent = note.textContent = $("why").textContent = "";
     $("stop").textContent = "End";

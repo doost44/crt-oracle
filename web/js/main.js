@@ -146,14 +146,12 @@
       Oracle.vhs(grid, t, Oracle.theme.switching ? (CLEAN ? 0.4 : 1.2) : CLEAN ? 0 : 0.18, random);
     }
     grid.render();
-    // The glitch look (glitch.html): the whole picture split and torn, with a burst
-    // and the colour bars whenever the screen re-tints for a new personality.
+    // The glitch look (glitch.html): the screen of a failing machine (signal.js), jolted
+    // whenever it re-tints for a new personality.
     if (Oracle.signal) {
-      const now = performance.now();
-      if (Oracle.theme.switching && !state.signalSwitching) Oracle.signal.kick({ strength: 1, bars: true, ms: 900 });
+      if (Oracle.theme.switching && !state.signalSwitching) Oracle.signal.kick({ strength: 1, ms: 900 });
       state.signalSwitching = Oracle.theme.switching;
-      Oracle.signal.flash(grid.ctx, window.innerWidth, window.innerHeight, now);
-      Oracle.signal.post(grid.canvas, now);
+      Oracle.signal.post(grid.canvas, performance.now());
     }
   }
 
@@ -226,6 +224,7 @@
     if (terminal) terminal.destroy();
     if (senses) senses.stop();
     terminal = null;
+    if (Oracle.signal) Oracle.signal.reset(); // the glitch look: the next visitor gets a fresh screen
     go("boot");
   }
 
