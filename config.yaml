@@ -40,3 +40,13 @@ printer:
   width: 32               # characters per line on the receipt
   out_dir: out            # where "file" receipts are written
   lp_destination: ""      # printer name for the "lp" backend
+
+# The live conversation: python -m oracle.server (docs/LIVE_ORACLE.md).
+# The API key is never stored here: set ANTHROPIC_API_KEY in the environment.
+live:
+  brain: auto             # auto (Claude when ANTHROPIC_API_KEY is set) | claude | mock
+  model: claude-opus-5-5
+  effort: low             # low = quick replies; medium/high think longer and cost more
+  max_tokens: 4000        # per reply, thinking included
+  max_turns: 8            # visitor answers before the Oracle wraps up
+  log_dir: out/sessions   # one .jsonl transcript per visitor

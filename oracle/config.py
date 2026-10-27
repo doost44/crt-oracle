@@ -41,6 +41,19 @@ DEFAULTS: dict = {
         "out_dir": "out",
         "lp_destination": "",
     },
+    # The live conversation (python -m oracle.server). See docs/LIVE_ORACLE.md.
+    "live": {
+        "brain": "auto",  # auto (Claude when ANTHROPIC_API_KEY is set) | claude | mock
+        "model": "claude-opus-5-5",
+        "effort": "low",  # low keeps replies quick; medium/high think longer
+        "max_tokens": 4000,  # per reply, thinking included
+        "fallbacks": True,  # retry declined requests on a fallback model (Claude API only)
+        "timeout_seconds": 30,
+        "max_turns": 8,  # visitor answers before the Oracle closes the conversation
+        "receipt_width": 32,
+        "prompts_dir": "content/oracle",
+        "log_dir": "out/sessions",
+    },
 }
 
 

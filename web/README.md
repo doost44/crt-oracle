@@ -72,8 +72,12 @@ web/
   js/story.js       the story engine (same rules as oracle/story.py)
   js/terminal.js    typewriter text, menus, input, the receipt
   js/main.js        the flow of one visit: boot, hallway, face, receipt
+  js/live.js        the live conversation (only with python -m oracle.server)
+  data/live.js      stub; the server replaces it to switch the live conversation on
+  operator.html     the hidden operator panel (js/operator.js, css/operator.css)
   tests/e2e.js      browser test (Playwright): node web/tests/e2e.js
   tests/story.test.js  story engine test: node web/tests/story.test.js
+  tests/live_e2e.js    live conversation in mock mode, with the operator panel
 ```
 
 `node web/tests/e2e.js` plays one whole visit in headless Chromium and saves
@@ -82,10 +86,11 @@ screenshots (to `$env:E2E_SCREENSHOTS`, or a temp folder). It needs Playwright
 
 ## Later stages
 
-- **Live Claude replies.** The Oracle will answer in character through a small
-  serverless proxy (for example a Cloudflare Worker) that holds the API key, with
-  rate limits, a token cap and an origin check. Never put an API key in client
-  code: anything in `web/` is public. The scripted replies stay as the fallback.
+- **Live Claude conversation (draft).** `python -m oracle.server` serves this
+  page with an open conversation instead of the scripted story: Claude (or an
+  offline mock) plays the Oracle, switches masks, and writes the receipt. The API
+  key stays in that server, never in `web/`. See
+  [docs/LIVE_ORACLE.md](../docs/LIVE_ORACLE.md).
 - **Webcam.** Face detection in the browser (getUserMedia), an ASCII face box and
   the same interruption rules as the Python version. The camera is optional and
   asks for permission first. Frames are never stored or sent anywhere.

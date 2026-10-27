@@ -85,11 +85,22 @@
     terminal = new Oracle.Terminal(terminalEl, {
       onTyping: (on) => (state.talking = on),
     });
-    const seed = Math.floor(Math.random() * 2 ** 31);
-    const result = await Oracle.runStory(window.ORACLE_CONTENT, terminal, {
-      random: Oracle.rng(seed),
-      onPersonality: (id) => (state.personality = id),
-    });
+    const onPersonality = (id) => {
+      state.personality = id;
+      // For the per-personality colour shift: CSS can key off body[data-personality].
+      document.body.dataset.personality = id || "";
+    };
+    let result;
+    if (window.ORACLE_LIVE) {
+      // Served by python -m oracle.server: the open conversation (Claude or the mock).
+      result = await Oracle.runLive(window.ORACLE_CONTENT, terminal, { live: window.ORACLE_LIVE, onPersonality });
+    } else {
+      const seed = Math.floor(Math.random() * 2 ** 31);
+      result = await Oracle.runStory(window.ORACLE_CONTENT, terminal, {
+        random: Oracle.rng(seed),
+        onPersonality,
+      });
+    }
     Oracle.showReceipt(receiptEl, result.receipt, {
       personality: state.personality,
       onAgain: reset,
@@ -102,6 +113,7 @@
     terminalEl.innerHTML = "";
     state.personality = null;
     state.talking = false;
+    delete document.body.dataset.personality;
     if (terminal) terminal.destroy();
     terminal = null;
     go("boot");

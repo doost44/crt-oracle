@@ -278,3 +278,6 @@
   .ticket::before, .ticket::after { display: none; }
   .ticket-text { text-shadow: none; color: #000; }
 }
+
+/* The live Oracle waiting on its reply (web/js/live.js). */
+.term-thinking { opacity: 0.75; letter-spacing: 0.3em; }

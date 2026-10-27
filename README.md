@@ -8,6 +8,10 @@ This is the starter repo: the story engine, three personalities, the camera and 
 
 A browser version of the Oracle lives in [web/](web/): static HTML, CSS and JavaScript that reads the same `content/` files. It runs locally with `py -m http.server 8000 -d web` and publishes to GitHub Pages at https://doost44.github.io/crt-oracle/. How to run, re-export the content and publish: [web/README.md](web/README.md).
 
+### Live conversation (draft)
+
+`python -m oracle.server` serves the web version with an open conversation: Claude plays the Oracle, switches between the three masks, and prints a reading of the whole conversation, while a hidden operator panel watches. Without an API key it runs an offline mock. How it works and how to switch Claude on: [docs/LIVE_ORACLE.md](docs/LIVE_ORACLE.md).
+
 ## Quick start
 
 ```bash

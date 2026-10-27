@@ -1,0 +1,40 @@
+# Seeds: the themes the Oracle steers the conversation toward.
+# They are not a script. The Oracle never reads them out or asks them in
+# order; it picks whichever one the visitor's last answer opens a door to.
+#
+# THESE ARE PLACEHOLDERS until Charlie's real questions arrive. Replace them
+# freely: each seed needs an `id`, a `theme` (what the Oracle is after, in
+# plain words, for Claude) and a `probes` list per personality (sample lines;
+# Claude reads them as examples, and the offline mock mode asks them as-is).
+
+seeds:
+  - id: pride
+    theme: "Something they are quietly proud of, and whether anyone else knows."
+    probes:
+      sugar: ["Tell me something you're proud of. Something small. I love small."]
+      weary: ["Go on then. What are you proud of. Everyone's proud of something..."]
+      clinical: ["State one accomplishment. Self-reported. It will not be verified."]
+  - id: worry
+    theme: "What keeps them up at night, and how long they have been carrying it."
+    probes:
+      sugar: ["What do you worry about, sweetie? You can tell me. I tell no one. Mostly."]
+      weary: ["What keeps you up. Not that I sleep. Just... what."]
+      clinical: ["Identify the subject's primary worry. Approximate duration, in years."]
+  - id: want
+    theme: "Something they want but haven't asked for out loud."
+    probes:
+      sugar: ["What do you want, darling? Really want. Don't be shy, it's only me."]
+      weary: ["What do you want. Besides leaving. I want that too."]
+      clinical: ["List one desire not previously disclosed to another subject."]
+  - id: watched
+    theme: "Who they think about when they imagine being watched, and why that person."
+    probes:
+      sugar: ["Who do you hope is watching you right now? Besides me, obviously!"]
+      weary: ["Who do you picture watching you. There's always someone..."]
+      clinical: ["Name the observer the subject imagines most often. A role is sufficient."]
+  - id: return
+    theme: "What they would come back to this room to find out."
+    probes:
+      sugar: ["If you came back tomorrow, what would you want me to have figured out?"]
+      weary: ["You'll come back. They do. What for, this time..."]
+      clinical: ["Hypothetical: the subject returns. Purpose of return?"]
