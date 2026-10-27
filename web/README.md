@@ -219,12 +219,12 @@ where the computer has enough of them, on top of voice.js's pitch and rate.
   microphone isn't allowed, a text box takes the answers instead. The camera is
   never used, and nothing is recorded or saved.
 
-**Room voices.** Each mask speaks in its own space: Sugar in a bright hall with
-a sweet slap-back echo, Weary in a deep dark cave whose echo keeps going,
-Clinical in a small hard room with a short metallic flutter. The browser's own
+**Room voices.** Each mask speaks in its own faint space: a touch of reverb
+(bright for Sugar, dull for Weary, small and hard for Clinical). An echo per mask
+is built in but switched off. The browser's own
 voices can't be put through effects, so these come from meSpeak (eSpeak in the
 browser, GPL; `js/roomvoice.js`) and go through Web Audio: a convolution reverb
-made from decaying noise and a feedback delay. They sound more synthetic than the
+made from decaying noise, and an optional feedback delay. They sound more synthetic than the
 system voices, which suits a machine in a room. The masks are one mind, so the
 voices glitch into each other: the other masks say the same words underneath and
 tear through in short slices, a fragment sometimes stutters, and right after a

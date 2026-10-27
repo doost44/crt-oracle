@@ -1,9 +1,9 @@
 /* The Oracle's room voices: speech that sounds like it is somewhere. Each mask
- * speaks in its own space, with reverb and an echo:
+ * speaks in its own faint space (an echo can be added per mask, but is off):
  *
- *   SUGAR     a bright hall, a sweet slap-back echo
- *   WEARY     a deep, dark cave; the echo keeps going after it has stopped caring
- *   CLINICAL  a small hard room; a short metallic flutter, like a lab intercom
+ *   SUGAR     a bright room
+ *   WEARY     a dull, dark room
+ *   CLINICAL  a small hard room
  *
  * The browser's own voices (speechSynthesis) play straight to the speakers and
  * can't be routed through effects, so these voices come from meSpeak (eSpeak in
@@ -33,32 +33,33 @@
 
   // eSpeak settings (variant, pitch 0-99, speed in words per minute) and the space.
   //   reverb: seconds of tail, decay curve (higher dies faster), wet level, tone (Hz)
-  //   echo:   delay seconds, feedback, level, tone (Hz) of each repeat
+  //   echo:   delay seconds, feedback, level, tone (Hz) of each repeat; null for none
   const MASKS = {
     sugar: {
       speech: { variant: "f5", pitch: 78, speed: 158, amplitude: 120 },
-      reverb: { seconds: 1.0, decay: 3.5, wet: 0.07, tone: 6500 },
-      echo: { time: 0.24, feedback: 0.08, level: 0.04, tone: 4200 },
+      reverb: { seconds: 0.8, decay: 4, wet: 0.035, tone: 6500 },
+      echo: null,
     },
     weary: {
       speech: { variant: "m3", pitch: 18, speed: 112, amplitude: 120, wordgap: 2 },
-      reverb: { seconds: 1.6, decay: 3.5, wet: 0.1, tone: 1600 },
-      echo: { time: 0.38, feedback: 0.1, level: 0.05, tone: 1400 },
+      reverb: { seconds: 1.1, decay: 4, wet: 0.045, tone: 1600 },
+      echo: null,
     },
     clinical: {
       speech: { variant: "klatt3", pitch: 46, speed: 165, amplitude: 120 },
-      reverb: { seconds: 0.45, decay: 5, wet: 0.06, tone: 9000 },
-      echo: { time: 0.07, feedback: 0.15, level: 0.04, tone: 7000 },
+      reverb: { seconds: 0.4, decay: 5, wet: 0.03, tone: 9000 },
+      echo: null,
     },
   };
 
   // The glitches between voices.
   //   perSecond   torn-in slices of another mask, on average, per second of speech
   //   slice       how long each lasts, seconds (min, max)
+  //   level       how loud the other mask cuts in; dip, how far the speaking voice drops
   //   stutter     chance that a glitch is a stutter of the speaking voice instead
   //   bleed       level of the last mask under the first moments after a switch
   //   bleedFor    seconds that bleed takes to fade
-  const GLITCH = { perSecond: 0.9, slice: [0.06, 0.2], stutter: 0.3, bleed: 0.35, bleedFor: 1.6 };
+  const GLITCH = { perSecond: 0.5, slice: [0.05, 0.14], level: 0.7, dip: 0.35, stutter: 0.25, bleed: 0.2, bleedFor: 1.2 };
 
   const url = (p) => new URL(p, document.baseURI).href;
 
@@ -166,6 +167,10 @@
       verb.connect(wet).connect(out);
 
       // The echo: each repeat a little duller, and the repeats ring in the room too.
+      if (!spec.echo) {
+        if (live) this.rooms[mask] = input;
+        return input;
+      }
       const delay = ctx.createDelay(2);
       delay.delayTime.value = spec.echo.time;
       const feedback = ctx.createGain();
@@ -242,15 +247,15 @@
           for (let k = 1; k <= 2; k++) {
             const rep = source(v.main);
             const g = ctx.createGain();
-            g.gain.value = 0.8 / k;
+            g.gain.value = 0.6 / k;
             rep.connect(g).connect(dest);
             rep.start(t0 + at + len * k, at, len);
           }
         } else {
           const g = ghostGains[names[Math.floor(random() * names.length)]].gain;
-          g.setValueAtTime(0.95, t0 + at);
+          g.setValueAtTime(GLITCH.level, t0 + at);
           g.setValueAtTime(0, t0 + at + len);
-          mainGain.gain.setValueAtTime(0.12, t0 + at);
+          mainGain.gain.setValueAtTime(GLITCH.dip, t0 + at);
           mainGain.gain.setValueAtTime(1, t0 + at + len);
         }
       }
@@ -264,7 +269,7 @@
       const v = await this._voices(text, mask);
       const spec = MASKS[v.mask];
       const rate = opts.sampleRate || v.main.sampleRate;
-      const tail = spec.reverb.seconds + spec.echo.time * 8 + GLITCH.slice[1] * 3;
+      const tail = spec.reverb.seconds + (spec.echo ? spec.echo.time * 8 : 0) + GLITCH.slice[1] * 3;
       const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
       const ctx = new OAC(2, Math.ceil((v.main.duration + tail) * rate), rate);
       this._schedule(ctx, this._room(v.mask, ctx), v, 0, opts.from, opts.random);
