@@ -2,22 +2,26 @@
  *
  * Every scene draws by calling grid.set(x, y, ch, color) between grid.clear()
  * and grid.render(). Colors are palette keys (see PALETTE), so the look can
- * change in one place.
+ * change in one place: theme.js re-tints the palette per personality.
+ *
+ * grid.rowShift[y] slides a whole row sideways by a fraction of a cell when it
+ * is drawn, for the VHS tracking wobble. It is cleared with the grid.
  */
 (function () {
   "use strict";
   const Oracle = (window.Oracle = window.Oracle || {});
 
-  const PALETTE = {
-    bg: "#1530e8",
-    fg: "#f4f6ff",
-    dim: "#93a3ff",
-    bright: "#ffffff",
-    orange: "#ff9b2f",
-    red: "#ff3b3b",
-    teal: "#37d6c5",
-    ink: "#0b1a8c",
-  };
+  // theme.js fills this in (and changes it in place); these are only the fallback.
+  const PALETTE = (Oracle.PALETTE = Oracle.PALETTE || {
+    bg: "#03110a",
+    fg: "#6dff9e",
+    dim: "#2a8f55",
+    bright: "#e2ffe9",
+    orange: "#ffb347",
+    red: "#ff4a3d",
+    teal: "#5fe8d6",
+    ink: "#010a05",
+  });
   const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
   const TARGET_ROWS = 60; // about 60 rows tall on any screen; columns follow the width
 
@@ -46,11 +50,13 @@
       const n = this.cols * this.rows;
       this.chars = new Array(n).fill(" ");
       this.colors = new Array(n).fill("fg");
+      this.rowShift = new Float32Array(this.rows);
     }
 
     clear() {
       this.chars.fill(" ");
       this.colors.fill("fg");
+      this.rowShift.fill(0);
     }
 
     inside(x, y) {
@@ -86,6 +92,7 @@
       ctx.textBaseline = "top";
       let last = null;
       for (let y = 0; y < this.rows; y++) {
+        const ox = this.offsetX + this.rowShift[y] * this.cellW;
         for (let x = 0; x < this.cols; x++) {
           const i = y * this.cols + x;
           const ch = this.chars[i];
@@ -95,7 +102,7 @@
             ctx.fillStyle = PALETTE[color] || color;
             last = color;
           }
-          ctx.fillText(ch, this.offsetX + x * this.cellW, this.offsetY + y * this.cellH);
+          ctx.fillText(ch, ox + x * this.cellW, this.offsetY + y * this.cellH);
         }
       }
     }
@@ -112,7 +119,6 @@
     };
   }
 
-  Oracle.PALETTE = PALETTE;
   Oracle.Grid = Grid;
   Oracle.rng = rng;
   Oracle.scenes = Oracle.scenes || {};

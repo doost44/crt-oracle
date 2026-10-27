@@ -147,6 +147,8 @@ async function main() {
     await page.waitForSelector("#terminal .term-option.term-live");
     await page.keyboard.press("1");
     await page.waitForFunction((id) => window.Oracle.app.state.personality === id, personality.id);
+    // The screen re-tints to the personality's palette, and its face takes the centre.
+    await page.waitForFunction((id) => document.documentElement.dataset.theme === id, personality.id);
 
     for (let i = 0; i < ANSWERS.length; i++) {
       step(`answer question ${i + 1}: "${ANSWERS[i]}"`);
@@ -217,6 +219,8 @@ async function main() {
     await page.waitForTimeout(300);
     await shot("boot-again");
     if ((await scene()) !== "boot") throw new Error("not on the boot screen after AGAIN");
+    const theme = await page.evaluate(() => document.documentElement.dataset.theme);
+    if (theme !== "neutral") throw new Error(`the screen is still tinted "${theme}" after AGAIN`);
   } catch (err) {
     errors.push(`step failed: ${err.message}`);
   } finally {
