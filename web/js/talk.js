@@ -92,6 +92,20 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
       if (Oracle.vhs && Oracle.theme.switching) Oracle.vhs(grid, t, 0.4, Oracle.rng(Math.floor(t * 30) + 1));
     }
     grid.render();
+    // The glitch look (talk-glitch.html): colour bars behind the start screen, then
+    // the whole picture split and torn (signal.js).
+    if (Oracle.signal) {
+      const ctx = grid.ctx;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      if (!state.mask) Oracle.signal.bars(ctx, w * 0.04, h * 0.05, w * 0.92, h * 0.9, now / 1000, { full: true });
+      else {
+        // The poster's blocks along the bottom edge, so the bars never quite leave.
+        Oracle.signal.bars(ctx, 0, h * 0.975, w, h * 0.025, now / 1000);
+        Oracle.signal.flash(ctx, w, h, now);
+      }
+      Oracle.signal.post(grid.canvas, now);
+    }
     requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
@@ -103,6 +117,7 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
       state.mask = mask;
       state.maskSince = performance.now();
       Oracle.theme.set(mask);
+      if (Oracle.signal) Oracle.signal.kick({ strength: switched ? 1 : 0.7, bars: true, ms: switched ? 900 : 600 });
       document.body.dataset.personality = mask;
       document.querySelectorAll(".masks li").forEach((li) => li.classList.toggle("on", li.dataset.mask === mask));
     }
@@ -219,10 +234,13 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     });
   }
 
+  // Each look has its own second screen (talk-glitch.html opens readout-glitch.html).
+  const READOUT = window.ORACLE_READOUT || "readout.html";
+
   function openSecondScreen() {
-    const w = window.open("readout.html", "oracle-readout", "popup,width=1280,height=800");
+    const w = window.open(READOUT, "oracle-readout", "popup,width=1280,height=800");
     if (w) screen2 = w;
-    else note.textContent = "The browser blocked the second screen. Open readout.html in another window instead.";
+    else note.textContent = `The browser blocked the second screen. Open ${READOUT} in another window instead.`;
   }
 
   // --- Claude ----------------------------------------------------------------------
@@ -461,7 +479,7 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
 
   document.querySelectorAll("[data-second-screen]").forEach((b) => b.addEventListener("click", openSecondScreen));
   const here = $("be-second-screen");
-  if (here) here.addEventListener("click", () => (location.href = "readout.html"));
+  if (here) here.addEventListener("click", () => (location.href = READOUT));
   document.querySelectorAll(".picks button").forEach((b) => b.addEventListener("click", () => begin(b.dataset.mask)));
   mic.addEventListener("click", () => (mic.dataset.state === "listening" ? voice.cancel() : listen()));
   $("typed").addEventListener("submit", (e) => {

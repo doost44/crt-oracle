@@ -4,6 +4,7 @@
  *
  *   python tools/fetch_vision.py          (once: the face tracker files)
  *   node web/tests/talk_readout.e2e.js face.jpg
+ *   LOOK=glitch node web/tests/talk_readout.e2e.js face.jpg   (talk-glitch.html, readout-glitch.html)
  *
  * The fake camera shows the still picture given (a photo with one face in it).
  * Claude is scripted: it opens, answers the visitor with a "hold still" command,
@@ -25,6 +26,8 @@ const path = require("path");
 const { chromium } = require("playwright");
 
 const WEB = path.resolve(__dirname, "..");
+// LOOK=glitch runs the same visit on the glitch look's pages.
+const LOOK = process.env.LOOK ? "-" + process.env.LOOK : "";
 const FACE = process.argv[2] ? path.resolve(process.argv[2]) : null;
 const FRAME_W = 640;
 const FRAME_H = 480;
@@ -167,14 +170,14 @@ async function main() {
 
     step("open the second screen: the camera starts and finds the face");
     const readout = watch(await context.newPage(), "readout");
-    await readout.goto(base + "readout.html");
+    await readout.goto(base + `readout${LOOK}.html`);
     await readout.waitForFunction(() => window.Oracle.presence.status === "live");
     await readout.waitForFunction(() => !!window.Oracle.presence.current, null, { timeout: 60000 });
 
     step("open the spoken Oracle: it hears the readout's camera is live");
     const talk = watch(await context.newPage(), "talk");
     await talk.addInitScript(stubTalkPage);
-    await talk.goto(base + "talk.html");
+    await talk.goto(base + `talk${LOOK}.html`);
     await talk.waitForFunction(() => window.Oracle.talk.eye.camera === "live" && window.Oracle.talk.eye.face);
 
     step("start, and answer: the Oracle gives a command");

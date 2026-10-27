@@ -23,8 +23,8 @@
     ink: "#0b1a8c",
   });
   const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
-  // The clean demo look (clean.html) uses heavier type, so blue on white reads well.
-  const WEIGHT = window.ORACLE_LOOK === "clean" ? "bold " : "";
+  // The clean and glitch looks use heavier type, so the two tones read well.
+  const WEIGHT = window.ORACLE_LOOK === "clean" || window.ORACLE_LOOK === "glitch" ? "bold " : "";
   const TARGET_ROWS = 60; // about 60 rows tall on any screen; columns follow the width
 
   class Grid {

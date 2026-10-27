@@ -153,6 +153,31 @@ drawn smaller, fully on screen and centred above the terminal. Open
 `clean.html` instead of `index.html`; the controls are the same. It is switched
 on by `window.ORACLE_LOOK = "clean"` before the scripts load, plus `css/clean.css`.
 
+### Glitch look (`talk-glitch.html`, `readout-glitch.html`, `glitch.html`)
+
+A third look, after the K.TV poster: black, white type in a narrow sans
+(Bahnschrift on Windows), VHS colour bars torn sideways, the red, green and blue
+pulled apart and the picture slipping in horizontal bands as the tracking goes.
+The white-and-blue clean pages stay as they are; these sit beside them.
+
+- `talk-glitch.html` is the spoken Oracle in this look. The start screen sits
+  over a full set of torn colour bars; once a mask speaks the screen goes black,
+  the figure in white with that mask's own bar colour (yellow Sugar, green Weary,
+  cyan Clinical), and the bars only come back as a strip along the bottom and in
+  bursts. **Second screen** opens `readout-glitch.html`.
+- `readout-glitch.html` is the camera screen in the same look: a black-and-white
+  picture with the blacks crushed, the whole screen colour-split and torn, and
+  colour bars in place of the picture when there is no camera. It breaks up when
+  the mask changes and when a command starts or ends.
+- `glitch.html` is the typed visit (like `clean.html`) in the same look; F9 opens
+  `readout-glitch.html`.
+
+The tearing is `js/signal.js`, run on each page's canvas after it has drawn
+(`css/glitch.css` does the same to the page's text). It only rearranges what is
+already on the canvas: camera frames are still drawn, measured and thrown away,
+never kept. `?` options and keys are the same as on the other pages. Test:
+`LOOK=glitch node web/tests/talk_readout.e2e.js face.jpg`.
+
 ## Voice answers and physical actions
 
 Switched on from the address bar, so the plain visit stays exactly as it was:
@@ -251,6 +276,7 @@ web/
   data/face.js      GENERATED from assets/oracle-face/ (don't edit)
   js/sound.js       hum, clicks and printer, synthesised with Web Audio
   js/theme.js       the palette per personality, and the flickery switch between them
+  js/signal.js      the glitch look's torn colour bars and RGB split
   js/grid.js        the character screen: one canvas, a grid of cells
   js/hallway.js     the ASCII hallway drift, and the VHS wobble and edge static
   js/face.js        the painted sun face, lit from the height and sculpt maps

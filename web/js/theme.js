@@ -85,6 +85,25 @@
     for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, ink);
   }
 
+  // The glitch look (talk-glitch.html, glitch.html set window.ORACLE_LOOK = "glitch"):
+  // white characters on black, like the K.TV poster's type. Each mask keeps one
+  // colour bar of its own in the accent slot (signal.js has the bars).
+  if (window.ORACLE_LOOK === "glitch") {
+    const black = {
+      bg: "#000000",
+      fg: "#eef0f8",
+      dim: "#7a7f92",
+      bright: "#ffffff",
+      orange: "#c8d0e6",
+      red: "#d8323a",
+      teal: "#9fd6e8",
+      ink: "#000000",
+      bleed: "#d8323a",
+    };
+    const accent = { neutral: "#c8d0e6", sugar: "#e6d838", weary: "#a3bf63", clinical: "#9fd6e8" };
+    for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, black, { orange: accent[id] });
+  }
+
   const KEYS = Object.keys(THEMES.neutral);
   const SWITCH_MS = 900;
 

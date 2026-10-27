@@ -31,6 +31,10 @@
     sugar: { fg: [255, 184, 82], bg: "#0d0702" },
     clinical: { fg: [214, 232, 255], bg: "#03060c" },
   };
+  // The glitch look (readout-glitch.html): white on black for everyone, torn and
+  // colour-split by signal.js, with colour bars where there is no picture.
+  const SIGNAL = window.ORACLE_LOOK === "glitch" && Oracle.signal;
+  if (SIGNAL) for (const id of Object.keys(TINTS)) TINTS[id] = { fg: [236, 238, 246], bg: "#000000" };
   const C = {
     head: "#ff3030",
     face: "#4a6bff",
@@ -121,13 +125,14 @@
         const i = (y * PIC_W + x) * 4;
         const j = (y * PIC_W + sx) * 4;
         let lum = (src[j] * 0.3 + src[j + 1] * 0.59 + src[j + 2] * 0.11) / 255;
-        lum = 0.12 + Math.pow(lum, 0.85) * 0.88; // washed out: blacks lifted
+        // Washed out, blacks lifted; the glitch look crushes them instead, like the poster's black.
+        lum = SIGNAL ? Math.pow(lum, 1.25) * 1.1 : 0.12 + Math.pow(lum, 0.85) * 0.88;
         const n = (Math.random() - 0.5) * (inBand ? 0.5 : 0.16);
         const v = Math.max(0, lum + n);
         // Red smears in from the edges, sampled a few pixels to the side.
         const k = (y * PIC_W + Math.min(PIC_W - 1, sx + 4)) * 4;
         const edgeX = Math.max(0, 1 - Math.min(x, PIC_W - x) / (PIC_W * 0.08));
-        const bleed = Math.max(edgeY, edgeX * 0.6) ** 1.5 * (src[k] / 255) * 0.8;
+        const bleed = SIGNAL ? 0 : Math.max(edgeY, edgeX * 0.6) ** 1.5 * (src[k] / 255) * 0.8;
         d[i] = tr * v + 230 * bleed;
         d[i + 1] = tg * v * (1 - bleed * 0.6);
         d[i + 2] = tb * v * (1 - bleed * 0.7);
@@ -598,6 +603,7 @@
       ended: 0,
     };
     logEntry(`INSTRUCTION: ${state.command.label.toUpperCase()}`, true);
+    if (SIGNAL) SIGNAL.kick({ strength: 1, bars: true, ms: 700 });
   }
 
   // Every tracker result while a command is open: is the visitor doing it?
@@ -613,6 +619,7 @@
       c.ended = performance.now();
       presence.post({ type: "command-result", id: c.id, action: c.action, status: r.status, hint: r.hint || null });
       logEntry(r.status === "done" ? `COMPLIED: ${c.label.toUpperCase()}` : `NON-COMPLIANCE: ${c.label.toUpperCase()}`, true);
+      if (SIGNAL) SIGNAL.kick({ strength: r.status === "done" ? 0.5 : 1, bars: r.status !== "done", ms: 600 });
     }
   });
 
@@ -688,7 +695,11 @@
    * Oracle's notes and what the visitor said show without a camera too. */
   function drawNoSignal(tint) {
     const v = L.video;
-    drawNoise(v, tint, 0.35);
+    if (SIGNAL) {
+      SIGNAL.bars(ctx, v.x, v.y, v.w, v.h, performance.now() / 1000);
+      ctx.fillStyle = "rgba(0,0,0,0.78)";
+      ctx.fillRect(v.x + v.w * 0.06, v.y + v.h / 2 - L.fs * 5, v.w * 0.88, L.fs * 8.5);
+    } else drawNoise(v, tint, 0.35);
     const cx = v.x + v.w / 2;
     const cy = v.y + v.h / 2;
     text("NO SIGNAL", cx, cy - L.fs * 3, C.head, L.fs * 2.4, "center");
@@ -761,8 +772,18 @@
       drawStrip(t, f, tint);
     } catch (err) {
       console.warn(err);
+    } finally {
+      if (SIGNAL) {
+        // A burst when the mask changes; the bars flash through on the big ones.
+        const who = state.oracle.personality || null;
+        if (who !== lastWho) SIGNAL.kick({ strength: 0.9, bars: true, ms: 800 });
+        lastWho = who;
+        SIGNAL.flash(ctx, W, H, now);
+        SIGNAL.post(canvas, now, { split: 0.8 });
+      }
     }
   }
+  let lastWho = null;
 
   // --- talking to the Oracle's screen, and keys -----------------------------------------
 

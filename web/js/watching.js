@@ -60,7 +60,7 @@
     } catch (e) {
       // no permission to see the screens: open it here and drag it across
     }
-    window.open("readout.html" + location.search, "oracle-readout", features);
+    window.open((window.ORACLE_READOUT || "readout.html") + location.search, "oracle-readout", features);
   }
 
   document.addEventListener("keydown", (e) => {

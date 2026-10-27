@@ -146,6 +146,15 @@
       Oracle.vhs(grid, t, Oracle.theme.switching ? (CLEAN ? 0.4 : 1.2) : CLEAN ? 0 : 0.18, random);
     }
     grid.render();
+    // The glitch look (glitch.html): the whole picture split and torn, with a burst
+    // and the colour bars whenever the screen re-tints for a new personality.
+    if (Oracle.signal) {
+      const now = performance.now();
+      if (Oracle.theme.switching && !state.signalSwitching) Oracle.signal.kick({ strength: 1, bars: true, ms: 900 });
+      state.signalSwitching = Oracle.theme.switching;
+      Oracle.signal.flash(grid.ctx, window.innerWidth, window.innerHeight, now);
+      Oracle.signal.post(grid.canvas, now);
+    }
   }
 
   let lastFrame = 0;

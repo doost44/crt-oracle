@@ -1,0 +1,94 @@
+/* The glitch look (talk-glitch.html, readout-glitch.html, glitch.html), after the
+ * K.TV poster: black, white type in a narrow sans, colour bars torn sideways and
+ * the red, green and blue pulled apart. The canvases get their tearing from
+ * signal.js; this does the same to the page's own text. Loaded last.
+ * theme.js supplies the black palette as the usual --bg, --fg, ...; --orange is
+ * the speaking mask's own bar colour (yellow Sugar, green Weary, cyan Clinical). */
+
+:root {
+  --type: Bahnschrift, "DIN Alternate", "DIN Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --split: -2px 0 rgba(255, 30, 70, 0.85), 2px 0 rgba(30, 200, 255, 0.85);
+  --split-wide: -6px 0 rgba(255, 30, 70, 0.9), 6px 0 rgba(30, 200, 255, 0.9), 0 0 8px rgba(255, 255, 255, 0.35);
+  --accent: var(--orange);
+}
+
+html, body { background: #000; }
+
+/* --- the spoken Oracle (talk-glitch.html) ---------------------------------------- */
+
+.talk, .start {
+  font-family: var(--type); text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--fg); text-shadow: var(--split);
+}
+
+/* The start screen sits over the colour bars, top left like the poster's type,
+ * each line on its own black strip so it reads over the bars. */
+.start {
+  background: transparent; align-items: flex-start; justify-content: flex-start; text-align: left;
+  padding: 6vh max(16px, 5vw); font-style: italic;
+}
+.start > * { background: #000; padding: 2px 10px; margin: 0 0 4px; }
+.start h1 {
+  font-size: clamp(36px, 8vw, 88px); letter-spacing: 0.06em; line-height: 1; padding: 6px 12px;
+  font-style: italic; transform: skewX(-6deg); text-shadow: var(--split-wide);
+}
+.start p { max-width: min(34em, 92vw); }
+.start .pick { margin-top: 18px; }
+.start .picks, .start .second { background: transparent; padding: 0; justify-content: flex-start; }
+.start .small { text-transform: none; font-style: normal; letter-spacing: 0; color: #c9ccd8; max-width: min(40em, 92vw); text-shadow: none; }
+
+.mic, .typed button, .quiet, .picks button {
+  background: #000; color: var(--fg); border: 2px solid var(--fg);
+  font-family: var(--type); text-transform: uppercase; letter-spacing: 0.08em; font-style: italic;
+  text-shadow: var(--split);
+}
+.picks button:hover, .mic:not(:disabled):hover, .typed button:hover, .quiet:hover {
+  background: var(--fg); color: #000; text-shadow: none; border-color: var(--fg);
+}
+.quiet { border-color: var(--dim); color: #c9ccd8; }
+.mic[data-state="listening"] { background: var(--accent); border-color: var(--accent); color: #000; text-shadow: none; }
+.typed input {
+  background: #000; color: var(--fg); border: 2px solid var(--fg);
+  font-family: var(--type); text-transform: none; letter-spacing: 0.02em;
+}
+
+.masks li { border-color: var(--dim); color: #9a9fb2; background: #000; font-style: italic; text-shadow: none; }
+.masks li.on { border-color: var(--accent); background: var(--accent); color: #000; text-shadow: none; }
+
+.said { font-style: italic; letter-spacing: 0.03em; }
+.said .line { background: #000; padding: 0 8px; align-self: center; }
+.why, .note, .heard { text-transform: none; letter-spacing: 0.01em; text-shadow: none; color: #b8bccb; }
+
+/* A burst (signal.js): the text jumps sideways in slices, the colours pull apart. */
+.signal-burst .talk, .signal-burst .start, .signal-burst .terminal, .signal-burst .vhs-osd {
+  text-shadow: var(--split-wide);
+  animation: signal-tear 0.18s steps(2, end) infinite;
+}
+@keyframes signal-tear {
+  0% { transform: translateX(0); clip-path: inset(0 0 0 0); }
+  25% { transform: translateX(-14px); clip-path: inset(12% 0 58% 0); }
+  50% { transform: translateX(9px); clip-path: inset(0 0 0 0); }
+  75% { transform: translateX(-4px) skewX(-4deg); clip-path: inset(46% 0 20% 0); }
+  100% { transform: translateX(0); clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signal-burst .talk, .signal-burst .start, .signal-burst .terminal, .signal-burst .vhs-osd { animation: none; }
+}
+
+/* --- the typed visit (glitch.html) ---------------------------------------------- */
+
+#screen { filter: none; }
+.crt-overlay { background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.35) 0 1px, transparent 1px 3px); }
+.crt-overlay::after { display: none; }
+.terminal { font-family: var(--type); text-shadow: var(--split); letter-spacing: 0.03em; }
+.vhs-osd { font-family: var(--type); font-style: italic; text-shadow: var(--split); opacity: 1; }
+.ticket { background: #f2f2f2; }
+
+/* --- the second screen (readout-glitch.html): the canvas does it all ---------------- */
+
+.readout-glass {
+  background: repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 3px);
+}
+
+/* The start screen no longer hides what is behind it, so hide the talk row itself. */
+body:has(.start:not([hidden])) .talk { visibility: hidden; }
