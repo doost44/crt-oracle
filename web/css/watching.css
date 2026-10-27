@@ -1,0 +1,10 @@
+/* The camcorder REC mark in the corner of the Oracle's screen (js/watching.js). */
+.watching {
+  position: fixed; top: 2.2vh; right: 3ch; z-index: 5; pointer-events: none;
+  font-family: var(--font); font-size: max(12px, calc(var(--cell) * 1.05)); letter-spacing: 0.08em;
+  color: var(--dim); opacity: 0.7;
+  text-shadow: 0 0 4px currentColor;
+}
+.watching.watching-on { color: var(--red); opacity: 0.95; }
+.watching.watching-on::first-letter { animation: watching-blink 1s steps(1) infinite; }
+@keyframes watching-blink { 50% { color: transparent; } }

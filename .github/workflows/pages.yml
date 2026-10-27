@@ -59,6 +59,9 @@ jobs:
       - name: ASCII 3D tests (Node)
         run: node web/tests/ascii3d.test.js
 
+      - name: Camera picker and face reading tests (Node)
+        run: node web/tests/presence.test.js
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
@@ -73,6 +76,10 @@ jobs:
       - uses: actions/checkout@v5
 
       - uses: actions/configure-pages@v5
+
+      # The face tracker files are not in git; publish them so the page needs no CDN.
+      - name: Fetch the face tracker
+        run: python3 tools/fetch_vision.py
 
       - uses: actions/upload-pages-artifact@v3
         with:

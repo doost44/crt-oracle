@@ -44,6 +44,55 @@ forget. The face export needs OpenCV: `pip install -e ".[dev,camera]"`.
 The workflow is `.github/workflows/pages.yml`. It publishes the `web/` folder as
 it is.
 
+## The camera and the readout screen
+
+The camera turns on as soon as the page opens and stays on for the whole visit.
+A face tracker (MediaPipe Face Landmarker) runs in the browser on every frame and
+a red **REC** mark in the corner of the Oracle's screen lights up while a face is
+in view. Nothing is recorded, stored or sent anywhere: each frame is measured and
+thrown away, and the readout is theatre that never identifies anyone.
+
+**Second monitor.** `readout.html` shows the participant's live face under
+made-up surveillance readouts: a VHS-tinted picture with a date stamp, head and
+face boxes, eye markers, landmark dots and a triangulated mesh, numbered blocks
+torn off the picture, "match" slots that never match, and analysis labels that
+change with the face's expression. The colours follow whichever personality is
+speaking.
+
+1. Once, on the exhibit laptop, fetch the face tracker so it works offline
+   (about 13 MB, into `web/vendor/`, which git ignores):
+
+   ```powershell
+   .\.venv\Scripts\python.exe tools\fetch_vision.py
+   ```
+
+   Without it the page loads the tracker from a CDN, which needs the internet.
+2. Run the local server as above (the camera needs `http://localhost`, not a
+   double-clicked file) and open http://localhost:8000.
+3. Press **F9** on the Oracle's screen to open the readout in a new window. Drag
+   it to the second monitor and press **F** (or double-click) for fullscreen.
+   Both screens must be in the same Chrome window set, so the readout can hear
+   the Oracle. If the Oracle's screen is closed, the readout tracks by itself.
+
+**Picking the camera.** The Oracle never takes the default camera, because on the
+laptop that is NVIDIA Broadcast, a virtual camera that breaks face tracking. It
+skips virtual cameras (NVIDIA Broadcast, OBS, Snap Camera and the like) and opens
+the first real one. To choose:
+
+- press **C** on the readout screen to step through the cameras (the name shows
+  in the panel; the pick is remembered and the Oracle's screen follows), or
+- add `?camera=` and part of the name to the address, for example
+  `http://localhost:8000/?camera=USB%20Video` for the capture adapter.
+- `?camera=off` runs the Oracle with no camera.
+
+Chrome asks for camera permission the first time; tick "Allow" and it stays
+allowed for localhost. Other code can read the face too: `Oracle.presence.current`
+(position, turn, nod, eyes shut, expression scores) and
+`Oracle.presence.subscribe(fn)`.
+
+Readout keys: **C** next camera, **F** fullscreen, **M** mirror the picture,
+**H** hide the key line.
+
 ## Controls
 
 | Key | What it does |
@@ -56,6 +105,7 @@ it is.
 | Again | On the receipt: back to the boot screen for the next visitor |
 | Ctrl+M | Mute or unmute the sound |
 | Alt+1, Alt+2, Alt+3 | Preview: hand the screen to Sugar, Weary or Clinical (Alt+0: back to the sun face) |
+| F9 | Open the readout screen in a new window |
 
 ## Sound
 
@@ -125,7 +175,21 @@ web/
   data/live.js      stub; the server replaces it to switch the live conversation on
   operator.html     the hidden operator panel (js/operator.js, css/operator.css)
   tests/live_e2e.js    live conversation in mock mode, with the operator panel
+  js/camera.js      picks the real camera by name (skips NVIDIA Broadcast)
+  js/vision.js      loads the face tracker (web/vendor/ or a CDN)
+  js/face-reading.js  landmarks -> position, turn, nod, eyes, mood, labels
+  js/presence.js    always-on camera + tracker, shared between the two screens
+  js/watching.js    the REC mark; tells the readout what the Oracle is doing
+  readout.html      the second monitor
+  js/readout.js     draws the readout
+  vendor/mediapipe/ the face tracker (tools/fetch_vision.py; not in git)
+  tests/presence.test.js  camera picker and face reading: node web/tests/presence.test.js
+  tests/readout.e2e.js    camera + readout in Chromium: node web/tests/readout.e2e.js [face.jpg]
 ```
+
+`readout.e2e.js` gives Chromium a fake camera showing the picture you pass (any
+photo of a face) and checks the tracker finds it on both screens. Without a
+picture it shows a test card and checks the readout says NO SUBJECT.
 
 `node web/tests/e2e.js` plays one whole visit in headless Chromium and saves
 screenshots (to `$env:E2E_SCREENSHOTS`, or a temp folder). It needs Playwright
@@ -181,6 +245,5 @@ Chromium and checks faces, colours, switching, lean and talking).
   offline mock) plays the Oracle, switches masks, and writes the receipt. The API
   key stays in that server, never in `web/`. See
   [docs/LIVE_ORACLE.md](../docs/LIVE_ORACLE.md).
-- **Webcam.** Face detection in the browser (getUserMedia), an ASCII face box and
-  the same interruption rules as the Python version. The camera is optional and
-  asks for permission first. Frames are never stored or sent anywhere.
+- **Physical actions.** The Oracle asks the participant to look left, close their
+  eyes or come closer, and checks with `Oracle.presence`.
