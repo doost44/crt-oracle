@@ -11,3 +11,11 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #020a05; cur
     radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, 0.6) 100%);
   mix-blend-mode: multiply;
 }
+
+/* The clean look (?look=clean), matching clean.html and talk.html: white paper,
+ * only the faintest blue scanlines, no vignette. */
+html[data-look="clean"], html[data-look="clean"] body { background: #ffffff; }
+html[data-look="clean"] .readout-glass {
+  background: repeating-linear-gradient(to bottom, rgba(31, 43, 214, 0.035) 0 1px, transparent 1px 3px);
+  mix-blend-mode: normal;
+}

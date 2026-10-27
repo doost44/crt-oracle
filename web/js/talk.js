@@ -219,8 +219,11 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
     });
   }
 
+  // The second screen in this page's look (the clean white-and-blue one).
+  const SECOND_SCREEN = "readout.html" + (window.ORACLE_LOOK ? "?look=" + encodeURIComponent(window.ORACLE_LOOK) : "");
+
   function openSecondScreen() {
-    const w = window.open("readout.html", "oracle-readout", "popup,width=1280,height=800");
+    const w = window.open(SECOND_SCREEN, "oracle-readout", "popup,width=1280,height=800");
     if (w) screen2 = w;
     else note.textContent = "The browser blocked the second screen. Open readout.html in another window instead.";
   }
@@ -461,7 +464,7 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
 
   document.querySelectorAll("[data-second-screen]").forEach((b) => b.addEventListener("click", openSecondScreen));
   const here = $("be-second-screen");
-  if (here) here.addEventListener("click", () => (location.href = "readout.html"));
+  if (here) here.addEventListener("click", () => (location.href = SECOND_SCREEN));
   document.querySelectorAll(".picks button").forEach((b) => b.addEventListener("click", () => begin(b.dataset.mask)));
   mic.addEventListener("click", () => (mic.dataset.state === "listening" ? voice.cancel() : listen()));
   $("typed").addEventListener("submit", (e) => {

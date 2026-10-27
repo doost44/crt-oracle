@@ -13,6 +13,9 @@
  * frame is drawn, measured and thrown away.
  *
  * Keys: C next camera, F fullscreen, M mirror the picture, H hide the key line.
+ *
+ * ?look=clean (what the clean demo screens open it with) draws it in their look
+ * instead: white paper and blue ink, no colour bleed, no vignette.
  */
 (function () {
   "use strict";
@@ -31,7 +34,7 @@
     sugar: { fg: [255, 184, 82], bg: "#0d0702" },
     clinical: { fg: [214, 232, 255], bg: "#03060c" },
   };
-  const C = {
+  let C = {
     head: "#ff3030",
     face: "#4a6bff",
     eyeR: "#3cff4a",
@@ -44,6 +47,32 @@
     tagShadow: "#5a2cff",
     stamp: "#f2f2f2",
   };
+
+  // The clean look, matching clean.html and talk.html (theme.js): blue ink on white
+  // for every mask, and the overlay colours all blues, so nothing breaks the two tones.
+  const LOOK = new URLSearchParams(location.search).get("look") || window.ORACLE_LOOK || "crt";
+  const CLEAN = LOOK === "clean";
+  document.documentElement.dataset.look = LOOK;
+  if (CLEAN) {
+    const paper = { fg: [31, 43, 214], bg: "#ffffff" };
+    for (const id of Object.keys(TINTS)) TINTS[id] = paper;
+    C = {
+      head: "#1f2bd6",
+      face: "#0b159e",
+      eyeR: "#1f2bd6",
+      eyeL: "#1f2bd6",
+      dot: "#1f2bd6",
+      mesh: "#8a91ea",
+      search: "#5b6bff",
+      link: "#5b6bff",
+      tag: "#1f2bd6",
+      tagShadow: "#ffffff",
+      stamp: "#1f2bd6",
+    };
+  }
+  const BG_RGB = CLEAN ? [255, 255, 255] : [0, 0, 0];
+  const WEIGHT = CLEAN ? "bold " : "";
+
   const STAGES = ["FACE DETECTION", "FEATURE SEARCH", "FINAL FEATURE POSNS", "TRIANGULATION", "WARPING", "FEATURE EXTRACTION"];
   const STAGE_AT = [0, 0.7, 1.5, 2.3, 3.2]; // seconds after a face appears
 
@@ -121,9 +150,18 @@
         const i = (y * PIC_W + x) * 4;
         const j = (y * PIC_W + sx) * 4;
         let lum = (src[j] * 0.3 + src[j + 1] * 0.59 + src[j + 2] * 0.11) / 255;
-        lum = 0.12 + Math.pow(lum, 0.85) * 0.88; // washed out: blacks lifted
-        const n = (Math.random() - 0.5) * (inBand ? 0.5 : 0.16);
+        lum = CLEAN ? Math.pow(lum, 0.9) : 0.12 + Math.pow(lum, 0.85) * 0.88; // CRT: washed out, blacks lifted
+        const n = (Math.random() - 0.5) * (inBand ? 0.5 : CLEAN ? 0.06 : 0.16);
         const v = Math.max(0, lum + n);
+        if (CLEAN) {
+          // Blue ink where the picture is dark, white paper where it's light.
+          const ink = 1 - Math.min(1, v);
+          d[i] = 255 + (tr - 255) * ink;
+          d[i + 1] = 255 + (tg - 255) * ink;
+          d[i + 2] = 255 + (tb - 255) * ink;
+          d[i + 3] = 255;
+          continue;
+        }
         // Red smears in from the edges, sampled a few pixels to the side.
         const k = (y * PIC_W + Math.min(PIC_W - 1, sx + 4)) * 4;
         const edgeX = Math.max(0, 1 - Math.min(x, PIC_W - x) / (PIC_W * 0.08));
@@ -207,7 +245,7 @@
   }
 
   function text(str, x, y, color, size, align) {
-    ctx.font = `${size || L.fs}px ${FONT}`;
+    ctx.font = `${WEIGHT}${size || L.fs}px ${FONT}`;
     ctx.textAlign = align || "left";
     ctx.textBaseline = "top";
     ctx.fillStyle = color;
@@ -219,8 +257,16 @@
     ctx.font = `bold ${size}px ${FONT}`;
     ctx.textAlign = align || "left";
     ctx.textBaseline = "top";
-    ctx.fillStyle = "rgba(0,0,0,0.75)";
-    ctx.fillText(str, x + size * 0.08, y + size * 0.08);
+    if (CLEAN) {
+      // No drop shadow: a white edge keeps the blue readable over the picture.
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = Math.max(3, size * 0.16);
+      ctx.lineJoin = "round";
+      ctx.strokeText(str, x, y);
+    } else {
+      ctx.fillStyle = "rgba(0,0,0,0.75)";
+      ctx.fillText(str, x + size * 0.08, y + size * 0.08);
+    }
     ctx.fillStyle = C.stamp;
     ctx.fillText(str, x, y);
   }
@@ -229,8 +275,15 @@
     ctx.font = `bold ${size}px ${FONT}`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillStyle = C.tagShadow;
-    ctx.fillText(str, x + 1, y + 1);
+    if (CLEAN) {
+      ctx.strokeStyle = C.tagShadow;
+      ctx.lineWidth = 3;
+      ctx.lineJoin = "round";
+      ctx.strokeText(str, x, y);
+    } else {
+      ctx.fillStyle = C.tagShadow;
+      ctx.fillText(str, x + 1, y + 1);
+    }
     ctx.fillStyle = C.tag;
     ctx.fillText(str, x, y);
   }
@@ -334,7 +387,7 @@
       // The picture canvas is already mirrored, so sample it at the mirrored spot too.
       if (state.mirror) src.x = (1 - tile.sx - tile.sw) * PIC_W;
       ctx.drawImage(pic, src.x, src.y, src.w, src.h, dst.x, dst.y, dst.w, dst.h);
-      box(dst, "rgba(212,255,60,0.55)", 1);
+      box(dst, CLEAN ? "rgba(31,43,214,0.55)" : "rgba(212,255,60,0.55)", 1);
       tag(String(tile.id), dst.x + 2, dst.y + 2, size);
     }
   }
@@ -432,7 +485,7 @@
 
   function drawVideo(t, f, stage, tint) {
     const v = L.video;
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = CLEAN ? "#ffffff" : "#000";
     ctx.fillRect(v.x, v.y, v.w, v.h);
     const ok = processPicture(t, tint);
     if (ok) {
@@ -465,7 +518,7 @@
     }
     stamp(f ? "REC" : "STBY", v.x + small * 2.4, v.y + small, small);
     stamp("SP", v.x + v.w - small * 1.2, v.y + small, small, "right");
-    box(v, rgb(tint.fg, 0.5), 1);
+    box(v, CLEAN ? rgb(tint.fg) : rgb(tint.fg, 0.5), CLEAN ? 2 : 1);
     return stage;
   }
 
@@ -481,8 +534,9 @@
     const cell = Math.max(3, Math.round(r.w / 90));
     for (let y = r.y; y < r.y + r.h; y += cell) {
       for (let x = r.x; x < r.x + r.w; x += cell) {
-        const v = Math.random();
-        ctx.fillStyle = rgb([tint.fg[0] * v, tint.fg[1] * v, tint.fg[2] * v], alpha * 0.8);
+        // Static fades from the background towards the ink (a pale blue snow on white).
+        const v = Math.random() * (CLEAN ? 0.45 : 1);
+        ctx.fillStyle = rgb(tint.fg.map((c, j) => BG_RGB[j] + (c - BG_RGB[j]) * v), alpha * 0.8);
         ctx.fillRect(x, y, cell, cell);
       }
     }
@@ -628,8 +682,10 @@
     const small = Math.round(big * 0.42);
     const cx = v.x + v.w / 2;
     const top = v.y + v.h * 0.52; // below the face, above the date stamp
-    ctx.fillStyle = "rgba(0,0,0,0.55)";
-    ctx.fillRect(v.x + v.w * 0.08, top - small * 0.6, v.w * 0.84, big + small * 4.2);
+    const card = { x: v.x + v.w * 0.08, y: top - small * 0.6, w: v.w * 0.84, h: big + small * 4.2 };
+    ctx.fillStyle = CLEAN ? "rgba(255,255,255,0.88)" : "rgba(0,0,0,0.55)";
+    ctx.fillRect(card.x, card.y, card.w, card.h);
+    if (CLEAN) box(card, rgb(tint.fg), 2);
     if (!c.result) {
       text(Math.floor(t * 2) % 2 ? "INSTRUCTION" : "INSTRUCTION ▮", cx, top, C.tag, small, "center");
       stamp(c.label.toUpperCase(), cx, top + small * 1.4, big, "center");
@@ -695,7 +751,7 @@
     text(presence.status === "starting" ? "WAITING FOR THE CAMERA" : (presence.error || "CAMERA OFF").toUpperCase().slice(0, 60), cx, cy, rgb(tint.fg), L.fs, "center");
     const hint = presence.status === "error" ? "CLICK HERE TO TURN ON THE CAMERA" : "C: TRY THE NEXT CAMERA   ?camera=NAME PICKS ONE";
     text(hint, cx, cy + L.fs * 2, rgb(tint.fg, presence.status === "error" ? 1 : 0.6), L.fs * (presence.status === "error" ? 1.1 : 0.85), "center");
-    box(v, rgb(tint.fg, 0.5), 1);
+    box(v, CLEAN ? rgb(tint.fg) : rgb(tint.fg, 0.5), CLEAN ? 2 : 1);
   }
 
   // --- bookkeeping per frame ---------------------------------------------------------
