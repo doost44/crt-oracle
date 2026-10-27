@@ -11,15 +11,16 @@
  * are cut out of the glyphs, like holes in a mask.
  *
  * Each figure sways on its own and leans toward the participant. The look input
- * is the participant's face position in -1..1 (x right, y up); for now the demo
- * feeds it from the mouse, later the webcam tracker calls setLook().
+ * is the participant's face position in -1..1 (x right, y up): the game feeds it
+ * from the webcam, the demo from the mouse. With nobody there (setLook(null)) the
+ * figure looks around the room on its own, so it never sits still and flat.
  *
  * Contract, the same as Oracle.scenes.face so main.js can swap it in:
  *   Oracle.scenes.figure.frame(grid, t, opts)
  *     opts.region       {x, y, w, h} cells it may draw in
  *     opts.personality  "sugar" | "weary" | "clinical" (null keeps the last one)
  *     opts.mood         "talking" | "idle"
- *     opts.look         {x, y} in -1..1, or null to drift back to centre
+ *     opts.look         {x, y} in -1..1, or null to look around on its own
  *     opts.reveal       0..1, builds in from scattered characters
  *
  * Or directly: const figures = new Oracle.Figures(); figures.render(cols, rows, t, opts)
@@ -379,12 +380,16 @@
   class Figures {
     /* opts.cellAspect   cell width / height (default 0.6, the grid's)
      * opts.supersample  pixels per cell side (default 2)
-     * opts.personality  starting personality (default "sugar") */
+     * opts.personality  starting personality (default "sugar")
+   * opts.colorKeys    { bright, mid, dim } to colour glyphs with these names
+   *                   (palette keys, so the game's theme.js tints them) instead
+   *                   of each personality's own hex colours */
     constructor(opts) {
       opts = opts || {};
       const THREE = window.THREE;
       this.THREE = THREE;
       this.cellAspect = opts.cellAspect || 0.6;
+      this.colorKeys = opts.colorKeys || null;
       this.ascii = new A.AsciiRenderer({
         supersample: opts.supersample || 2,
         convert: { exposure: 0.98, gamma: 1.1, black: 0.02, hole: 0.012 },
@@ -420,7 +425,7 @@
       this.switchAt = null;
       this.pendingSwitch = false;
       this.look = { x: 0, y: 0 };
-      this.lookTarget = { x: 0, y: 0 };
+      this.lookTarget = null;
       this.talk = 0;
       this.lastT = null;
     }
@@ -432,14 +437,15 @@
       this.pendingSwitch = true;
     }
 
-    /* The participant's face position, x right and y up, -1..1. null: nobody there. */
+    /* The participant's face position, x right and y up, -1..1. null: nobody
+     * there, so it looks around on its own. */
     setLook(look) {
-      if (!look) this.lookTarget = { x: 0, y: 0 };
+      if (!look) this.lookTarget = null;
       else this.lookTarget = { x: clamp1(look.x), y: clamp1(look.y) };
     }
 
     colors(id) {
-      return PERSONALITIES[id || this.current].colors;
+      return this.colorKeys || PERSONALITIES[id || this.current].colors;
     }
 
     /* Advance time-based state (look easing, talking) to t seconds. */
@@ -452,9 +458,10 @@
         this.switchAt = t;
         this.pendingSwitch = false;
       }
+      const target = this.lookTarget || wander(t);
       const k = 1 - Math.exp(-dt * LOOK_EASE);
-      this.look.x += (this.lookTarget.x - this.look.x) * k;
-      this.look.y += (this.lookTarget.y - this.look.y) * k;
+      this.look.x += (target.x - this.look.x) * k;
+      this.look.y += (target.y - this.look.y) * k;
       const talking = opts.mood === "talking" ? 1 : 0;
       this.talk += (talking - this.talk) * (1 - Math.exp(-dt * 8));
     }
@@ -495,7 +502,7 @@
       const n = cols * rows;
       const chars = new Array(n);
       const colors = new Array(n);
-      paint(cur, PERSONALITIES[this.current].colors, chars, colors);
+      paint(cur, this.colors(this.current), chars, colors);
 
       // Switching: the new figure tears in over the old one, row by row and cell by cell.
       const p = this.switchAt == null ? 1 : (t - this.switchAt) / SWITCH_SECONDS;
@@ -503,7 +510,7 @@
         const old = this.renderOne(this.prev, cols, rows, t);
         const oc = new Array(n);
         const ocol = new Array(n);
-        paint(old, PERSONALITIES[this.prev].colors, oc, ocol);
+        paint(old, this.colors(this.prev), oc, ocol);
         const frameNo = Math.floor(t * 24);
         const tear = Math.sin(p * PI);
         for (let y = 0; y < rows; y++) {
@@ -568,6 +575,15 @@
     return new THREE.Sphere(center, Math.sqrt(r2));
   }
 
+  /* Where it looks with nobody there: slow sweeps across the room, a glance up or
+   * down now and then, never quite repeating. */
+  function wander(t) {
+    return {
+      x: 0.55 * Math.sin(t * 0.27) + 0.25 * Math.sin(t * 0.71 + 2),
+      y: 0.18 * Math.sin(t * 0.37 + 1) + 0.08 * Math.sin(t * 0.93),
+    };
+  }
+
   function clamp1(v) {
     return Math.max(-1, Math.min(1, +v || 0));
   }
@@ -585,11 +601,25 @@
   Oracle.Figures = Figures;
 
   // Drop-in scene with the same contract as Oracle.scenes.face. Built on first use,
-  // so pages that never show it don't pay for a WebGL context.
-  let shared = null;
+  // so pages that never show it don't pay for a WebGL context. Its glyphs use the
+  // grid's palette keys, so theme.js tints them with the rest of the screen.
+  const GAME_KEYS = { bright: "bright", mid: "fg", dim: "dim" };
+  let shared;
   Oracle.scenes.figure = {
     get figures() {
-      return shared || (shared = new Figures());
+      if (shared === undefined) {
+        try {
+          shared = new Figures({ colorKeys: GAME_KEYS });
+        } catch (err) {
+          console.warn("Oracle: no 3D figures, falling back to the flat faces:", err);
+          shared = null;
+        }
+      }
+      return shared;
+    },
+    /* False when there is no WebGL (or no three.js): main.js uses personas.js instead. */
+    get available() {
+      return !!(window.THREE && this.figures);
     },
     frame(grid, t, opts) {
       return this.figures.frame(grid, t, opts);

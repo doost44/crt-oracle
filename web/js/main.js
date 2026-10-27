@@ -66,6 +66,28 @@
 
   // --- drawing ---------------------------------------------------------------
 
+  /* Where the figure should look, x right and y up in -1..1: at the participant's
+   * face when the camera sees one, else at the mouse while it moves (handy when
+   * trying it on a laptop), else null and it looks around the room by itself. */
+  let mouse = null;
+  window.addEventListener("mousemove", (e) => {
+    mouse = {
+      x: (e.clientX / window.innerWidth) * 2 - 1,
+      y: 1 - (e.clientY / window.innerHeight) * 2,
+      at: performance.now(),
+    };
+  });
+  function figureLook() {
+    const face = Oracle.presence && Oracle.presence.current;
+    if (face && face.center) {
+      // The camera picture isn't mirrored: someone stepping to their right moves
+      // to the picture's left, and the figure turns to the screen's right to follow.
+      return { x: (1 - face.center.x * 2) * 1.4, y: (1 - face.center.y * 2) * 1.4 };
+    }
+    if (mouse && performance.now() - mouse.at < 4000) return mouse;
+    return null;
+  }
+
   function faceRegion() {
     // The face floats in the top part of the screen; the terminal owns the bottom 40%.
     return { x: 0, y: 0, w: grid.cols, h: Math.floor(grid.rows * 0.64) };
@@ -85,11 +107,16 @@
       const persona = state.personality && Oracle.scenes.persona;
       if (persona) {
         const pt = seconds(state.personaStart);
-        Oracle.scenes.persona.frame(grid, t, {
-          region: faceRegion(),
+        // The 3D figure (figures.js) when the browser has WebGL, else the flat face.
+        const figure = Oracle.scenes.figure && Oracle.scenes.figure.available ? Oracle.scenes.figure : null;
+        (figure || persona).frame(grid, t, {
+          // The figure gets a little more height, reaching just into the top of the
+          // terminal's space (the text sits at the bottom), so it's as big as in the demo.
+          region: figure ? { x: 0, y: 0, w: grid.cols, h: Math.floor(grid.rows * 0.72) } : faceRegion(),
           reveal: Math.min(1, pt / PERSONA_REVEAL_SECONDS),
           personality: state.personality,
           mood,
+          look: figureLook(),
         });
         // the old face tears away as the new one comes in
         if (pt < SWITCH_GLITCH_SECONDS) Oracle.glitch(grid, 0.5 * (1 - pt / SWITCH_GLITCH_SECONDS), Oracle.rng(Math.floor(pt * 30) + 7));

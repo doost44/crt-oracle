@@ -282,13 +282,12 @@ How it works, the same way as the chair on the CharlieCilla home page:
 4. Dense glyphs get the personality's bright colour, middling ones its mid
    colour, light ones its dim colour (`PERSONALITIES` in `js/figures.js`).
 
-Using it from the game: `Oracle.scenes.figure.frame(grid, t, opts)` takes the
-same options as the current face scene (`region`, `personality`, `mood`,
-`reveal`) plus `look`, so swapping it into `js/main.js` is one line (and adding
-the three script tags to `index.html`). For the webcam, call
-`Oracle.scenes.figure.figures.setLook({ x, y })` with the participant's face
-centre in -1..1 (x to the right as the oracle sees it, y up), or `setLook(null)`
-when nobody is there.
+In the game: once a personality takes over, its 3D figure fills the centre of
+the screen (`Oracle.scenes.figure` in `js/main.js`), with its glyphs in the
+theme's colours. It turns toward the participant's face from the webcam; with
+no face in view it follows the mouse while the mouse moves (handy on a laptop),
+and otherwise looks around the room by itself. Alt+1, Alt+2 and Alt+3 show each
+one. A browser without WebGL gets the flat faces from `js/personas.js` instead.
 
 Tests: `node web/tests/ascii3d.test.js` (the glyph and dithering maths, no
 browser) and `node web/tests/figures.e2e.js` (draws all three in headless
