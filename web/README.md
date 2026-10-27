@@ -72,13 +72,62 @@ web/
   js/story.js       the story engine (same rules as oracle/story.py)
   js/terminal.js    typewriter text, menus, input, the receipt
   js/main.js        the flow of one visit: boot, hallway, face, receipt
+  js/ascii3d.js     3D to ASCII: off-screen render, brightness, Bayer-dithered glyphs
+  js/figures.js     the sun, rock and tree models, colours, lean and switching
+  figures.html      demo page for the 3D personalities
+  vendor/three.min.js  three.js r149 (MIT, see vendor/three.LICENSE.txt)
   tests/e2e.js      browser test (Playwright): node web/tests/e2e.js
   tests/story.test.js  story engine test: node web/tests/story.test.js
+  tests/ascii3d.test.js  glyph/dither test: node web/tests/ascii3d.test.js
+  tests/figures.e2e.js   3D figures browser test (Playwright)
 ```
 
 `node web/tests/e2e.js` plays one whole visit in headless Chromium and saves
 screenshots (to `$env:E2E_SCREENSHOTS`, or a temp folder). It needs Playwright
 (`npm install playwright` and `npx playwright install chromium`).
+
+## 3D personalities (demo: `figures.html`)
+
+Sugar, Weary and Clinical as turning 3D figures drawn in ASCII: the sun, the rock
+and the tree. Open http://localhost:8000/figures.html with the server above (the
+page loads three.js from `web/vendor/`, so it works offline; double-clicking it
+works too).
+
+| Key | What it does |
+| --- | --- |
+| 1, 2, 3 | Sugar (sun, amber), Weary (rock, green), Clinical (tree, blue-white) |
+| T | Talking on/off (the mouth moves) |
+| C | Cycle through the three every 7 seconds |
+| Mouse | Stands in for the participant's face: the figure leans toward it |
+
+URL options: `?p=weary` starts on a personality, `?talk=1` starts talking,
+`?cycle=1` starts cycling, `?rows=40` sets how many rows of text tall it is
+(fewer rows = chunkier glyphs), `?still=3` freezes the clock at 3 s.
+
+How it works, the same way as the chair on the CharlieCilla home page:
+
+1. Each figure is built in code from three.js shapes (`js/figures.js`). The faces
+   are tubes pressed onto the surface, in pure black.
+2. The scene is rendered off-screen at one pixel per character cell (2 x 2 pixels
+   per cell, averaged).
+3. Each cell's brightness picks a glyph from ` .:-=+*#%@`, with a 4 x 4 Bayer
+   pattern deciding between two neighbouring glyphs, so shading comes out as an
+   even texture instead of bands (`js/ascii3d.js`). Pure black cells are left
+   blank, so the eyes and mouths are cut out of the figure.
+4. Dense glyphs get the personality's bright colour, middling ones its mid
+   colour, light ones its dim colour (`PERSONALITIES` in `js/figures.js`).
+
+Using it from the game: `Oracle.scenes.figure.frame(grid, t, opts)` takes the
+same options as the current face scene (`region`, `personality`, `mood`,
+`reveal`) plus `look`, so swapping it into `js/main.js` is one line (and adding
+the three script tags to `index.html`). For the webcam, call
+`Oracle.scenes.figure.figures.setLook({ x, y })` with the participant's face
+centre in -1..1 (x to the right as the oracle sees it, y up), or `setLook(null)`
+when nobody is there.
+
+Tests: `node web/tests/ascii3d.test.js` (the glyph and dithering maths, no
+browser) and `node web/tests/figures.e2e.js` (draws all three in headless
+Chromium and checks faces, colours, switching, lean and talking).
 
 ## Later stages
 

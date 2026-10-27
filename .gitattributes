@@ -1,1 +1,2 @@
 web/data/*.js text eol=lf
+web/vendor/** -diff linguist-vendored
