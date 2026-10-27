@@ -143,6 +143,16 @@ screen re-tints:
 The palettes are in `js/theme.js`; the faces in `js/personas.js` are 2D
 placeholders until the 3D models.
 
+### Clean demo (`clean.html`)
+
+The same visit in a plain terminal look: white background and blue text for the
+boot screen and all three personalities, heavier type, no glow, colour bleed or
+vignette, and only a hint of scanlines. The static and tracking wobble are gone
+from the face scene (and cut to a quarter in the hallway), and the 3D figures are
+drawn smaller, fully on screen and centred above the terminal. Open
+`clean.html` instead of `index.html`; the controls are the same. It is switched
+on by `window.ORACLE_LOOK = "clean"` before the scripts load, plus `css/clean.css`.
+
 ## Voice answers and physical actions
 
 Switched on from the address bar, so the plain visit stays exactly as it was:

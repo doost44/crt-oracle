@@ -1,0 +1,31 @@
+/* The clean demo look (clean.html): white paper, blue ink, like a plain terminal
+ * page. Loaded last, so it only takes things away from the CRT look: no phosphor
+ * glow, no colour bleed, no vignette, and only the faintest scanlines.
+ * theme.js supplies the white-and-blue palette as the usual --bg, --fg, ... */
+
+:root {
+  --paper: #ffffff;
+  --paper-edge: #ffffff;
+  --paper-ink: #1f2bd6;
+  --you: var(--dim);
+}
+
+#screen { filter: none; }
+
+.crt-overlay {
+  background: repeating-linear-gradient(to bottom, rgba(31, 43, 214, 0.035) 0 1px, transparent 1px 3px);
+}
+.crt-overlay::after { display: none; }
+
+.terminal, .vhs-osd, .watching, .receipt-btn { text-shadow: none; }
+.terminal { font-weight: bold; }
+.vhs-osd { opacity: 1; }
+
+/* The line being said, menu hovers and the cursor: solid blue blocks, white text. */
+.term-current .term-text, .term-cursor, .receipt-btn { box-shadow: none; }
+
+/* The receipt: blue type on white, with a thin blue rule instead of a drop shadow. */
+.receipt-slot { filter: none; }
+.ticket { background: var(--paper); border: 2px solid var(--fg); }
+.ticket::before, .ticket::after { display: none; }
+.ticket-text { text-shadow: none; }

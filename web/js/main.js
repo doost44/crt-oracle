@@ -12,6 +12,8 @@
   const REVEAL_SECONDS = 2.5;
   const PERSONA_REVEAL_SECONDS = 1.6;
   const SWITCH_GLITCH_SECONDS = 0.7;
+  // The clean demo look (clean.html): smaller, centred figures and a steady picture.
+  const CLEAN = window.ORACLE_LOOK === "clean";
   const MONTHS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
 
   const grid = new Oracle.Grid(document.getElementById("screen"));
@@ -93,6 +95,13 @@
     return { x: 0, y: 0, w: grid.cols, h: Math.floor(grid.rows * 0.64) };
   }
 
+  function figureRegion() {
+    // Clean look: the figure stays above the terminal, with room all round, so
+    // the whole of it fits in the middle of the screen.
+    if (CLEAN) return { x: 0, y: Math.floor(grid.rows * 0.03), w: grid.cols, h: Math.floor(grid.rows * 0.58) };
+    return { x: 0, y: 0, w: grid.cols, h: Math.floor(grid.rows * 0.72) };
+  }
+
   function draw() {
     grid.clear();
     const t = seconds(state.sceneStart);
@@ -112,7 +121,8 @@
         (figure || persona).frame(grid, t, {
           // The figure gets a little more height, reaching just into the top of the
           // terminal's space (the text sits at the bottom), so it's as big as in the demo.
-          region: figure ? { x: 0, y: 0, w: grid.cols, h: Math.floor(grid.rows * 0.72) } : faceRegion(),
+          region: figure ? figureRegion() : faceRegion(),
+          margin: CLEAN ? 1.15 : 1.0,
           reveal: Math.min(1, pt / PERSONA_REVEAL_SECONDS),
           personality: state.personality,
           mood,
@@ -120,7 +130,8 @@
         });
         // the old face tears away as the new one comes in
         if (pt < SWITCH_GLITCH_SECONDS) Oracle.glitch(grid, 0.5 * (1 - pt / SWITCH_GLITCH_SECONDS), Oracle.rng(Math.floor(pt * 30) + 7));
-      } else {
+      } else if (!CLEAN) {
+        // (The clean look leaves the screen empty until a personality is picked.)
         Oracle.scenes.face.frame(grid, t, {
           region: faceRegion(),
           reveal: Math.min(1, t / REVEAL_SECONDS),
@@ -130,8 +141,9 @@
       }
       // The tape is never quite clean: a little static at the edges, a little wobble.
       const random = Oracle.rng(Math.floor(t * 30) * 2654435761 + 1);
-      Oracle.edgeNoise(grid, 0.09, t, random);
-      Oracle.vhs(grid, t, Oracle.theme.switching ? 1.2 : 0.18, random);
+      // (The clean look skips the static and keeps only a brief wobble on a switch.)
+      if (!CLEAN) Oracle.edgeNoise(grid, 0.09, t, random);
+      Oracle.vhs(grid, t, Oracle.theme.switching ? (CLEAN ? 0.4 : 1.2) : CLEAN ? 0 : 0.18, random);
     }
     grid.render();
   }
