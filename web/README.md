@@ -170,10 +170,11 @@ camera and microphone don't work from a double-clicked file. The browser asks
 for the camera and microphone once.
 
 **Offline at the exhibit.** The face model loads from the internet unless it's
-in `web/vendor/`. Download it once (about 40 MB, not committed):
+in `web/vendor/`. Download it once (about 13 MB, not committed; the same download
+the webcam and readout use):
 
 ```powershell
-.\.venv\Scripts\python.exe tools\fetch_vendor.py
+.\.venv\Scripts\python.exe tools\fetch_vision.py
 ```
 
 Speech recognition runs on the laptop itself in newer Chrome versions when the

@@ -90,6 +90,8 @@ async function main() {
     const watch = (page, label) => {
       page.setDefaultTimeout(STEP_TIMEOUT);
       page.on("console", (msg) => {
+        // The synthesised sound waits for a key press, and Chrome warns about that.
+        if (/AudioContext was not allowed to start/.test(msg.text())) return;
         if (msg.type() === "error" || msg.type() === "warning") errors.push(`${label} console: ${msg.text()}`);
       });
       page.on("pageerror", (err) => errors.push(`${label} pageerror: ${err.stack || err.message}`));
@@ -112,7 +114,7 @@ async function main() {
     await operator.waitForFunction(() => document.getElementById("op-status").textContent === "live");
 
     step(`open ${base}`);
-    await page.goto(base);
+    await page.goto(base + "?camera=off"); // the headless browser has no webcam
     if (!(await page.evaluate(() => window.ORACLE_LIVE && window.ORACLE_LIVE.brain === "mock")))
       throw new Error("the page did not pick up the live config from the server");
     await page.waitForFunction(() => window.Oracle && window.Oracle.app && window.Oracle.app.state.scene === "boot");

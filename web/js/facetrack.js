@@ -18,9 +18,9 @@
   const Oracle = (window.Oracle = window.Oracle || {});
 
   // Pinned so a new release can't change behaviour under the exhibit.
-  const MP_VERSION = "0.10.35";
+  const MP_VERSION = "0.10.21"; // keep in step with VERSION in tools/fetch_vision.py
   const SOURCES = [
-    // Local copy first (python tools/fetch_vendor.py), so the install works offline.
+    // Local copy first (python tools/fetch_vision.py), so the install works offline.
     { bundle: "vendor/mediapipe/vision_bundle.mjs", wasm: "vendor/mediapipe/wasm", model: "vendor/mediapipe/face_landmarker.task" },
     {
       bundle: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VERSION}/vision_bundle.mjs`,

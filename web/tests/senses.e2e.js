@@ -8,7 +8,7 @@
  * answers, so the real voice.js code runs. The face tracker is replaced by one that
  * feeds a still synthetic face, unless FACE_VIDEO points at a .y4m or .mjpeg file
  * of a real face: then Chromium plays it as the webcam and the real MediaPipe model
- * runs (needs web/vendor/, from python tools/fetch_vendor.py, or internet).
+ * runs (needs web/vendor/, from python tools/fetch_vision.py, or internet).
  * Screenshots go to $E2E_SCREENSHOTS (default: a new temp folder).
  */
 "use strict";
@@ -101,7 +101,8 @@ function fakeMicrophone(spoken) {
 }
 
 /* Runs in the page after its scripts: swap the camera tracker for one that feeds a
- * still, front-facing synthetic face (the shape of a FaceLandmarker result). */
+ * still, front-facing synthetic face (the shape of a FaceLandmarker result), and
+ * do the same for the always-on camera's results. */
 function fakeFace() {
   const P = window.Oracle.Actions.P;
   const lm = Array.from({ length: 478 }, () => ({ x: 0.5, y: 0.5, z: 0 }));
@@ -132,6 +133,14 @@ function fakeFace() {
     }
   }
   window.Oracle.FaceTrack = StillFace;
+  // The actions use the always-on camera when it is running: feed that the same face.
+  const presence = window.Oracle.presence;
+  if (presence) {
+    presence.onResult = (fn) => {
+      const timer = setInterval(() => fn(result, performance.now()), 50);
+      return () => clearInterval(timer);
+    };
+  }
 }
 
 const step = (name) => console.log(`- ${name}`);
