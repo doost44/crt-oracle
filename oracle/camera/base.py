@@ -23,3 +23,7 @@ class FaceBox:
 def loose_emotion(rng: random.Random | None = None) -> str:
     """A deliberately unreliable emotion label. The Oracle states it with full confidence."""
     return (rng or random).choice(EMOTION_GUESSES)
+
+
+class CameraOpenError(RuntimeError):
+    """The camera could not be opened (missing, busy, or no permission)."""

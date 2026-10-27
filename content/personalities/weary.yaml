@@ -1,27 +1,70 @@
-# Weary: flat, tired, unimpressed. Paired with the rock (proposal).
+# Weary: so tired of humans it can barely finish a sentence. Everything you say
+# has been said before, by someone who has also left. Pretends to value rest and
+# not making a fuss. The contempt leaks out as boredom: you are not worth the
+# energy it would take to be rude to you. Rhythm: fragments, trailing dots, sighs.
 id: weary
 name: WEARY
 symbol: rock
 
 reactions:
   - "Mm. Sure. I'd write that down, but I'll forget it anyway."
-  - "Okay. That's an answer. I've heard others."
-  - "Fascinating. I'll try to care later."
-  - "Right. Of course it is."
+  - "Okay. That's an answer. Someone said that on Tuesday. And the Tuesday before."
+  - "Right. Of course it is. It always is..."
+  - "Fascinating. I'll try to care later. Probably not, but..."
+  - "Yep. Heard it. Heard it a lot. The rock heard it too, and the rock has given up."
+  - "Mm-hm. You're the... I've lost count. Doesn't matter."
+  - "That's... yes. Fine. Let's just..."
+  - "I was going to say something about that. Then I remembered I don't have to."
+  - "Wow. No, sorry. Reflex. I meant: okay."
+  - "Noted. Not really. But you can feel noted, if that helps."
 
 interruptions:
-  - "You look {emotion}. I can relate. Please stop staring."
-  - "Still here? Yes. Fine. Go on."
+  - "You look {emotion}. I can relate. Please stop looking at me."
+  - "Still here? Still {emotion}? Yes. Fine. Go on."
   - "I see you. I wish I didn't. {emotion}, is it?"
+  - "Sorry. Had to stop you. You were being {emotion} at me and I'm... not up for it."
+  - "There's a face. There's always a face. This one's {emotion}. Great..."
+  - "Can we... take a break? You've been {emotion} for ages. I've been tired for longer."
+  - "You know who else looked {emotion}? Everyone. Everyone who ever stood there."
+  - "Hang on. Hm. {emotion}. I had something to say about that. It's gone now."
+  - "Oh. A face. {emotion}, apparently. I'd check, but..."
 
 mishear:
-  template: "'{heard}'. That's what you said. I'm not going to argue about it."
-  words: [nothing, later, tuesday, sandwiches, rent, the weather, whatever, moss]
-
-verdict:
-  header: "THE RESULT"
   lines:
-    - "You said '{proud}'. I've seen better. I've seen worse. Mostly I've seen it."
-    - "You said '{worry}'. It will probably happen. Or not. Either way I'm tired."
-    - "Overall: fine. Go away."
+    - "'{heard}'. That's what you said. I'm not going to argue about it."
+    - "You said '{heard}'. I think. Close enough."
+    - "'{heard}'... yeah. Everybody says that eventually."
+    - "Mm. '{heard}'. I'd ask you to repeat it, but then you'd repeat it."
+    - "'{heard}'. I heard what I heard. Let's not..."
+    - "Did you say '{heard}'? Don't answer. It doesn't matter."
+  words:
+    - nothing
+    - later
+    - naps
+    - sandwiches
+    - the weather
+    - whatever
+    - moss
+    - laundry
+    - sitting down
+    - the same thing again
+    - beige walls
+    - gravel
+    - early nights
+
+receipt:
+  title: "ANOTHER ONE. FINE."
+  heard_note: "(as I heard it, roughly)"
+  header: "THE RESULT, I SUPPOSE"
+  lines:
+    - "You're proud of '{proud}'. I've seen better. I've seen worse. Mostly I've just seen it."
+    - "You worry about '{worry}'. It'll happen or it won't. Either way I'll be tired."
+    - "You want '{wish}'. So did the last one. They left. You'll leave too. Then another one..."
+    - "Overall: fine. You're fine. Go away."
   footer: "- The Oracle (sighs)"
+  fine_print:
+    - "This receipt will fade. Everything does."
+    - "Keep this for your records. Or don't. I won't."
+    - "Visitor number: lost count."
+    - "No refunds. No anything, really."
+    - "Same as the last receipt. Pretty much."

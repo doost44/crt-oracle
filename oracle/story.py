@@ -10,6 +10,8 @@ Node types:
 
 `text` can be a plain string or a dict keyed by personality id with a
 `default` entry. Text may use {key} to insert earlier answers.
+Any node can set `glitch: true` to make the screen glitch before its text
+(full-screen CRT display only).
 """
 
 from __future__ import annotations
@@ -42,6 +44,7 @@ class Node:
     next: str | None = None
     key: str | None = None
     count: int = 1
+    glitch: bool = False
     options: list[Option] = field(default_factory=list)
 
 
@@ -81,6 +84,7 @@ class Story:
                 next=raw.get("next"),
                 key=raw.get("key"),
                 count=int(raw.get("count", 1)),
+                glitch=bool(raw.get("glitch", False)),
                 options=options,
             )
         story = cls(start=data["start"], nodes=nodes)

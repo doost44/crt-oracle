@@ -1,0 +1,283 @@
+/* The terminal panel (#terminal) and the paper receipt (#receipt).
+ * Loaded after oracle.css; uses its color tokens (--bg, --fg, --font, --cell...).
+ */
+
+:root {
+  --paper: #f4f0e4;
+  --paper-edge: #e6e0cf;
+  --paper-ink: #1b1d2a;
+  --you: color-mix(in srgb, var(--fg) 78%, transparent);
+}
+
+/* --- the terminal ------------------------------------------------------------------ */
+
+/* Full height of the panel; lines sit at the bottom and old ones fade out at the top. */
+.term-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 38%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 38%);
+}
+.term-lines { flex: none; }
+
+.term-line {
+  margin: 0 0 0.3em;
+  max-width: 74ch;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  transition: opacity 0.4s linear;
+  animation: term-line-in 0.16s ease-out;
+}
+@keyframes term-line-in {
+  from { transform: translateY(0.45em); opacity: 0; }
+}
+
+/* The Oracle's lines. The one it is saying now gets the poster's inverted box. */
+.term-oracle .term-text { padding: 0 0.35ch; margin-left: -0.35ch; }
+.term-current .term-text {
+  background: var(--fg);
+  color: var(--bg);
+  text-shadow: none;
+  box-shadow: 0 0 8px var(--glow);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* While the Oracle types, a block cursor rides at the end of the line. */
+.term-speaking .term-text::after { content: "\2588"; margin-left: 0.1ch; }
+
+/* The visitor's answers and the system prompts: ">answer", like the poster's credits. */
+.term-you { color: var(--you); }
+.term-prompt { color: var(--fg); }
+
+/* Menus: >1/a_sun */
+.term-option .term-text { padding: 0 0.35ch; margin-left: -0.35ch; }
+.term-option.term-live { cursor: pointer; }
+.term-option.term-live:hover .term-text {
+  background: var(--fg);
+  color: var(--bg);
+  text-shadow: none;
+}
+.term-option.term-picked .term-text { outline: 1px solid var(--fg); outline-offset: 1px; }
+
+/* ASCII art for the chosen symbol: small, bright. */
+.term-art {
+  font-family: var(--font);
+  font-size: 0.6em;
+  line-height: 1.05;
+  margin: 0.2em 0 0.6em;
+  color: var(--bright);
+  white-space: pre;
+  overflow: hidden;
+}
+
+/* The answer field: a prompt, the typed text and a blinking block cursor. */
+.term-input { cursor: text; }
+.term-field { position: relative; display: inline; white-space: pre-wrap; }
+.term-typed { white-space: pre-wrap; }
+.term-cursor {
+  display: inline-block;
+  min-width: 1ch;
+  background: var(--fg);
+  color: var(--bg);
+  text-shadow: none;
+  box-shadow: 0 0 6px var(--glow);
+  white-space: pre;
+  animation: term-blink 1.06s steps(1, end) infinite;
+}
+.term-typing .term-cursor { animation: none; }
+@keyframes term-blink {
+  50% { background: transparent; color: inherit; box-shadow: none; }
+}
+/* The real <input> is invisible; the spans above show what it holds. */
+.term-hidden-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1em;
+  padding: 0;
+  border: 0;
+  margin: 0;
+  opacity: 0;
+  font: inherit;
+  color: transparent;
+  background: transparent;
+  caret-color: transparent;
+  pointer-events: none;
+}
+
+/* The keyboard moment: >press_enter [██░] 2/3 */
+.term-mash .term-text { padding: 0 0.35ch; margin-left: -0.35ch; color: var(--fg); }
+.term-mash.term-bump .term-text { animation: term-bump 0.22s steps(2, end); }
+.term-mash.term-done .term-text { color: var(--you); }
+@keyframes term-bump {
+  0% { background: var(--fg); color: var(--bg); text-shadow: none; }
+}
+
+/* --- the receipt overlay ----------------------------------------------------------- */
+
+.receipt-overlay[hidden] { display: none !important; }
+.receipt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: var(--ink-a);
+  animation: receipt-dim 0.4s ease-out both;
+}
+@keyframes receipt-dim { from { background: transparent; } }
+
+.receipt-stage {
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4ch;
+  padding: 5vh 16px 6vh;
+}
+
+/* The paper slides up out of the "printer" in jerky steps. */
+.receipt-slot {
+  flex: none;
+  margin: auto 0;
+  padding: 12px 0;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 2px rgba(0, 0, 0, 0.45));
+  animation: receipt-feed 1.5s steps(16, end) both;
+}
+@keyframes receipt-feed {
+  from { transform: translateY(105vh); }
+}
+
+.ticket {
+  --receipt-cols: 32;
+  --zig: 9px;
+  position: relative;
+  font-family: "Courier New", Courier, var(--font);
+  font-size: clamp(11px, 1.75vh, 17px);
+  line-height: 1.32;
+  width: calc(var(--receipt-cols) * 0.6em + 3.2em);
+  max-width: calc(100vw - 32px);
+  padding: 1.6em 1.6em 1.8em;
+  color: var(--paper-ink);
+  background:
+    radial-gradient(ellipse at 30% 10%, rgba(255, 255, 255, 0.5), transparent 60%),
+    linear-gradient(to bottom, var(--paper), var(--paper-edge));
+  text-shadow: none;
+}
+/* Torn, zigzag edges top and bottom. */
+.ticket::before,
+.ticket::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--zig);
+  background-size: calc(var(--zig) * 2) 100%;
+  background-repeat: repeat-x;
+}
+.ticket::before {
+  top: calc(var(--zig) * -1 + 1px);
+  background-image: conic-gradient(from 135deg at 50% 0, var(--paper) 90deg, transparent 0);
+}
+.ticket::after {
+  bottom: calc(var(--zig) * -1 + 1px);
+  background-image: conic-gradient(from -45deg at 50% 100%, var(--paper-edge) 90deg, transparent 0);
+}
+.ticket-text {
+  margin: 0;
+  font: inherit;
+  white-space: pre;
+  overflow: hidden;
+  /* thermal print: slightly soft, slightly uneven */
+  text-shadow: 0 0 0.6px rgba(27, 29, 42, 0.55);
+}
+
+.receipt-actions {
+  flex: none;
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1em;
+  font-size: calc(var(--cell, 16px) * 1.05);
+  animation: receipt-actions-in 0.4s 1.4s ease-out both;
+}
+@keyframes receipt-actions-in { from { opacity: 0; transform: translateX(-0.6em); } }
+
+.receipt-btn {
+  font: inherit;
+  font-family: var(--font);
+  color: var(--fg);
+  background: var(--bg);
+  border: 2px solid var(--fg);
+  padding: 0.45em 1.1em;
+  min-width: 11ch;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5ch;
+  text-shadow: 0 0 4px var(--glow);
+  box-shadow: 0 0 10px var(--glow);
+}
+.receipt-btn:hover,
+.receipt-btn:focus-visible {
+  background: var(--fg);
+  color: var(--bg);
+  text-shadow: none;
+  outline: none;
+}
+.receipt-btn-hint { opacity: 0.65; font-size: 0.8em; align-self: center; }
+
+@media (max-width: 640px) {
+  .receipt-stage { flex-direction: column; align-items: center; gap: 2em; }
+  .receipt-slot { margin: 0; }
+  .receipt-actions { flex-direction: row; flex-wrap: wrap; justify-content: center; font-size: 15px; }
+  .receipt-btn { min-width: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .term-line, .receipt-slot, .receipt-actions, .receipt-overlay { animation: none; }
+  .term-cursor { animation: none; }
+}
+
+/* --- printing: only the ticket, black on white, about 58 mm wide --------------------- */
+
+@media print {
+  @page { margin: 4mm; }
+  html, body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  body > *:not(#receipt) { display: none !important; }
+  #receipt {
+    position: static !important;
+    inset: auto;
+    background: none !important;
+    animation: none !important;
+  }
+  .receipt-stage { display: block; height: auto; overflow: visible; padding: 0; }
+  .receipt-actions { display: none !important; }
+  .receipt-slot { animation: none !important; filter: none !important; transform: none !important; padding: 0; margin: 0; }
+  .ticket {
+    width: 58mm;
+    max-width: none;
+    padding: 2mm 1.5mm;
+    background: #fff !important;
+    color: #000 !important;
+    /* fit the widest line into 55 mm of a monospace font about 0.6em per character */
+    font-size: calc(55mm / (var(--receipt-cols) * 0.61));
+    line-height: 1.25;
+  }
+  .ticket::before, .ticket::after { display: none; }
+  .ticket-text { text-shadow: none; color: #000; }
+}
+
+/* The live Oracle waiting on its reply (web/js/live.js). */
+.term-thinking { opacity: 0.75; letter-spacing: 0.3em; }

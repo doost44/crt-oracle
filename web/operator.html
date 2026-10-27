@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Oracle operator</title>
+<link rel="stylesheet" href="css/operator.css">
+</head>
+<body>
+<!-- The hidden operator panel: watch the live conversation as it happens.
+     Watch only: nothing here can steer the Oracle. Served by python -m oracle.server. -->
+<header class="op-bar">
+  <span class="op-title">ORACLE // OPERATOR</span>
+  <span class="op-tag">WATCH ONLY</span>
+  <span id="op-brain" class="op-tag"></span>
+  <span id="op-status" class="op-status">connecting</span>
+</header>
+<main class="op-main">
+  <nav class="op-sessions">
+    <label class="op-follow"><input type="checkbox" id="op-follow" checked> follow newest</label>
+    <ol id="op-list"></ol>
+  </nav>
+  <section class="op-view">
+    <div id="op-head" class="op-head"></div>
+    <ol id="op-log" class="op-log"></ol>
+  </section>
+</main>
+<script src="js/operator.js"></script>
+</body>
+</html>

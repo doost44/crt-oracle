@@ -14,27 +14,36 @@ def _center(text: str, width: int) -> str:
     return text.center(width).rstrip()
 
 
+def _centered_block(text: str, width: int) -> list[str]:
+    return [_center(line, width) for line in textwrap.wrap(text, width)]
+
+
 def build_receipt(session: Session, width: int = 32, now: datetime | None = None) -> str:
     """Format the visitor's result as plain text no wider than `width`."""
     now = now or datetime.now()
     rule = "=" * width
-    out: list[str] = [rule, _center("THE ORACLE HAS SPOKEN", width), rule]
     p = session.personality
-    out.append(_center(p.name if p else "UNCHOSEN", width))
+    title = p.receipt_title if p else "THE ORACLE HAS SPOKEN"
+    out: list[str] = [rule, *_centered_block(title, width), rule]
+    out.extend(_centered_block(p.name if p else "UNCHOSEN", width))
     out.append(_center(now.strftime("%Y-%m-%d %H:%M"), width))
     out.append("-" * width)
     if session.heard:
         out.append("WHAT YOU SAID")
-        out.append("(as I heard it)")
+        out.extend(textwrap.wrap(p.heard_note if p else "(as I heard it)", width))
         for key, value in session.heard.items():
             out.extend(textwrap.wrap(f"- {value}", width, subsequent_indent="  "))
         out.append("-" * width)
-    out.append(p.verdict_header if p else "VERDICT")
+    out.extend(textwrap.wrap(p.verdict_header if p else "VERDICT", width))
     for line in session.verdict_lines():
         out.extend(textwrap.wrap(line, width) or [""])
     if p and p.verdict_footer:
         out.append("-" * width)
         out.extend(textwrap.wrap(p.verdict_footer, width))
+    fine_print = p.fine_print_line(session.rng) if p else ""
+    if fine_print:
+        out.append("")
+        out.extend(_centered_block(fine_print, width))
     out.append(rule)
     return "\n".join(out) + "\n"
 

@@ -1,4 +1,7 @@
-# Clinical: cold, observational, treats you like a sample. Paired with the tree (proposal).
+# Clinical: treats visitors as lab specimens. Pretends to value accuracy and
+# procedure. The contempt leaks out as fake precision: invented numbers, forms,
+# "the subject", and the quiet finding that you are exactly average.
+# Rhythm: clipped, passive voice, measurement then verdict.
 id: clinical
 name: CLINICAL
 symbol: tree
@@ -7,21 +10,62 @@ reactions:
   - "Response logged. Hesitation: 4.2 seconds. Noted."
   - "Interesting. Subject appears confident. Confidence is not accuracy."
   - "Recorded. Please do not tamper with the apparatus."
-  - "Noted. Your answer will be compared against previous subjects."
+  - "Answer received. Originality index: 0.03. Within expected range for a human."
+  - "Thank you. Your sample has been labelled and placed with the others."
+  - "Logged under 'miscellaneous'. Cross-referenced under 'other'."
+  - "Response acknowledged. Word count: adequate. Content: present."
+  - "Fascinating. In this facility, 'fascinating' means 'expected'."
+  - "Data point accepted. It will be averaged out."
+  - "Noted. Your answer will be compared with 11,412 previous subjects. Projected outcome: indistinguishable."
 
 interruptions:
-  - "Facial reading: {emotion}. Confidence: 94 percent. Disregard this if you disagree."
-  - "Subject is in range. Please remain still."
+  - "Facial reading: {emotion}. Confidence: 94 percent. Disregard this if you disagree. Your disagreement will be logged."
+  - "Subject is in range. Please remain still. Subject is {emotion}. Please stop being {emotion}."
   - "Observation: you are {emotion}. This has been recorded."
+  - "Pausing procedure. Subject reads as {emotion}. Recalibrating. Still {emotion}."
+  - "Note for the file: subject has made eye contact with the instrument. Expression: {emotion}. Inadvisable."
+  - "Interruption 1 of an unspecified number. Detected state: {emotion}. No action required. From me."
+  - "Attention. Your face has been classified as {emotion}. Appeals may be submitted in writing to no one."
+  - "Measurement taken. You are 61 percent {emotion}, 39 percent unclassified."
+  - "Brief halt. Detected: {emotion}. Typical of subjects at this stage of the procedure."
 
 mishear:
-  template: "Transcription: '{heard}'. Corrections are not accepted."
-  words: [protocol, specimen, tuesday, grams, "a hypothesis", filing, plankton, residue]
+  lines:
+    - "Transcription: '{heard}'. Corrections are not accepted."
+    - "Audio processed. Result: '{heard}'. Margin of error: yours."
+    - "Entered into the record as '{heard}'. The record is permanent."
+    - "Recorded verbatim: '{heard}'. 'Verbatim' is defined loosely here."
+    - "Input parsed as '{heard}'. Parser accuracy: 99.8 percent. The other 0.2 percent is you."
+    - "Clarification not required. You said '{heard}'. See form 7-B."
+  words:
+    - protocol
+    - specimen
+    - petri dishes
+    - residue
+    - form 7-B
+    - grams
+    - the control group
+    - plankton
+    - sediment
+    - hypotheses
+    - the sample
+    - sixteen percent
+    - lichen
+    - footnotes
 
-verdict:
+receipt:
+  title: "SUBJECT OBSERVATION REPORT"
+  heard_note: "(as transcribed)"
   header: "FINDINGS"
   lines:
-    - "Item 1. Stated accomplishment: '{proud}'. Significance: low."
-    - "Item 2. Stated concern: '{worry}'. Likelihood: elevated."
-    - "Conclusion: subject is within normal range, which is the problem."
-  footer: "Report ends. Subject may leave."
+    - "1. Stated accomplishment: '{proud}'. Significance: low."
+    - "2. Stated concern: '{worry}'. Likelihood: elevated."
+    - "3. Stated desire: '{wish}'. Feasibility: not calculated. Calculation deemed unnecessary."
+    - "Conclusion: subject is within normal range. That is the finding."
+  footer: "Report ends. Subject may leave the testing area."
+  fine_print:
+    - "Retain this report. It is the only record that you were here."
+    - "Margin of error: plus or minus one subject."
+    - "Not peer reviewed. Peers declined."
+    - "Results are final. So is the sample."
+    - "Do not fold, bend or disagree."

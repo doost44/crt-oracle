@@ -5,7 +5,23 @@
 # Text can use {key} to insert an earlier answer (as the Oracle "heard" it).
 # Text can also be a dict by personality: {default: "...", sugar: "...", weary: "..."}
 #
-# All questions below are PLACEHOLDERS. Replace them with yours.
+# ======================================================================
+#  THE QUESTIONS BELOW ARE PLACEHOLDERS, NOT THE REAL ONES.
+#  Every question's text starts with "[PLACEHOLDER Qn branch]" so it is
+#  obvious here and on screen. To swap in the real questions:
+#    1. Search this file for "PLACEHOLDER" (nine ask nodes: 3 per branch).
+#    2. Replace each `text:` with your question. Drop the [PLACEHOLDER ...] tag.
+#    3. Keep each `key:` (proud / worry / wish). The verdict lines in
+#       content/personalities/*.yaml insert {proud}, {worry} and {wish}.
+#       If you change or add a key, update those verdict lines to match.
+#    4. Delete test_every_question_is_a_placeholder in tests/test_story.py
+#       (it fails on purpose once real questions land), then run pytest.
+#  Full table of placeholders: docs/QUESTIONS.md
+#  Only the questions are placeholders; the Oracle's other lines are not.
+# ======================================================================
+#
+# Flow: welcome -> pick_symbol -> <branch>_intro -> <branch>_q1 (proud)
+#       -> <branch>_q2 (worry) -> <branch>_q3 (wish) -> wake -> verdict
 
 start: welcome
 
@@ -22,61 +38,95 @@ nodes:
       - label: "A sun"
         art: sun
         personality: sugar
-        next: sun_q1
+        next: sun_intro
       - label: "A rock"
         art: rock
         personality: weary
-        next: rock_q1
+        next: rock_intro
       - label: "A tree"
         art: tree
         personality: clinical
-        next: tree_q1
+        next: tree_intro
 
-  # --- sun branch -----------------------------------------------------
+  # --- sun branch (Sugar) ---------------------------------------------
+  sun_intro:
+    type: say
+    text:
+      default: "The sun. Of course."
+      sugar: "The sun! Oh, everyone picks the sun. You must feel so special."
+    next: sun_q1
   sun_q1:
     type: ask
     key: proud
-    text: "PLACEHOLDER (sun 1): Tell me something you are proud of."
+    text: "[PLACEHOLDER Q1 sun] Something you're proud of?"
     next: sun_q2
   sun_q2:
     type: ask
     key: worry
-    text: "PLACEHOLDER (sun 2): And something you worry about?"
+    text: "[PLACEHOLDER Q2 sun] Something you worry about?"
+    next: sun_q3
+  sun_q3:
+    type: ask
+    key: wish
+    text: "[PLACEHOLDER Q3 sun] Something you want?"
     next: wake
 
-  # --- rock branch ----------------------------------------------------
+  # --- rock branch (Weary) --------------------------------------------
+  rock_intro:
+    type: say
+    text:
+      default: "The rock. Fine."
+      weary: "The rock. Sure. They all pick the rock eventually. Let's just..."
+    next: rock_q1
   rock_q1:
     type: ask
     key: proud
-    text: "PLACEHOLDER (rock 1): Name one thing you finished recently."
+    text: "[PLACEHOLDER Q1 rock] Something you're proud of?"
     next: rock_q2
   rock_q2:
     type: ask
     key: worry
-    text: "PLACEHOLDER (rock 2): Name one thing you keep putting off."
+    text: "[PLACEHOLDER Q2 rock] Something you worry about?"
+    next: rock_q3
+  rock_q3:
+    type: ask
+    key: wish
+    text: "[PLACEHOLDER Q3 rock] Something you want?"
     next: wake
 
-  # --- tree branch ----------------------------------------------------
+  # --- tree branch (Clinical) -----------------------------------------
+  tree_intro:
+    type: say
+    text:
+      default: "The tree. Noted."
+      clinical: "Selection: tree. Specimen intake commencing. Remain 0.8 metres from the glass."
+    next: tree_q1
   tree_q1:
     type: ask
     key: proud
-    text: "PLACEHOLDER (tree 1): State one accomplishment, for the record."
+    text: "[PLACEHOLDER Q1 tree] Something you're proud of?"
     next: tree_q2
   tree_q2:
     type: ask
     key: worry
-    text: "PLACEHOLDER (tree 2): State one concern, for the record."
+    text: "[PLACEHOLDER Q2 tree] Something you worry about?"
+    next: tree_q3
+  tree_q3:
+    type: ask
+    key: wish
+    text: "[PLACEHOLDER Q3 tree] Something you want?"
     next: wake
 
   # --- keyboard moment, shared ----------------------------------------
+  # Keep count at 3: main.py's demo and tests/test_runner.py script three Enters.
   wake:
     type: mash
     count: 3
     text:
       default: "I have gone quiet. Press Enter three times to wake me."
-      sugar: "I'm just resting my eyes! Press Enter three times, sweetie."
+      sugar: "I'm just resting my eyes! Press Enter three times, sweetie. Gently."
       weary: "I was asleep. Press Enter three times. Not that it matters."
-      clinical: "Unit idle. Press Enter three times to resume."
+      clinical: "Unit idle. Press Enter exactly three times. Deviations will be recorded."
     next: verdict
 
   verdict:

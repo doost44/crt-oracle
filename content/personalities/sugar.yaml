@@ -1,30 +1,74 @@
-# Sugar: relentlessly cheerful, quietly cruel. Paired with the sun (proposal).
+# Sugar: relentlessly sweet, every compliment has a little knife in it.
+# Pretends to care about your feelings. The contempt leaks out as praise that
+# shrinks you: "for you", "you tried", "brave to say that out loud".
+# Rhythm: gush, gush, then one short quiet line that lands.
 id: sugar
 name: SUGAR
 symbol: sun
 
 # Said after a normal answer.
 reactions:
-  - "Oh, what a brave answer! Most people don't say that out loud."
-  - "I love that for you. Really. I'm sure it will be fine."
-  - "That's so... you. Don't change. Or do, honestly."
-  - "Mm-hmm! I'm writing that down. In pencil."
+  - "Oh, what a brave answer! Most people would have kept that to themselves."
+  - "I love that for you. I really do. Someone has to."
+  - "Mm-hmm! I'm writing that down. In pencil. Very light pencil."
+  - "Aww, you tried! That's the important part. That's the only part, really."
+  - "What a lovely answer! Simple people always have the loveliest answers."
+  - "Gosh, so honest! Nobody asked for that much honesty, but here we are!"
+  - "Perfect! Well, not perfect. But perfect for you, sweetie."
+  - "That is so you. And good for you for being you. Somebody has to be."
+  - "Oh, I'm going to remember that forever. For your sake, I'll try not to."
+  - "Yay! Big clap for you! Small clap, actually. Medium. Let's say a nice pat."
 
 # Said when the camera has watched a face for a while. {emotion} is a guess.
+# Never start a line with "{" (tests look for the text before the first "{").
 interruptions:
-  - "Sweetie, why do you look so {emotion}? Everything is lovely."
-  - "Oh! You're still here. I mean that warmly. Mostly."
-  - "Smile! No? Okay. That's a very {emotion} look, I suppose."
+  - "Sweetie, why do you look so {emotion}? Everything is lovely. I made sure."
+  - "Oh! You're still here. And still {emotion}. I mean that warmly. Mostly."
+  - "Sorry, honey, I had to stop you. You looked {emotion} and I'm very sensitive."
+  - "Quick little check-in! You seem {emotion}. Do you want to talk about it? I don't, but you might."
+  - "Oh, don't look so {emotion}! People will think I'm doing something wrong."
+  - "Hi, darling! I can see you seeing me. That's {emotion}, isn't it? So brave to show that in public."
+  - "Oops, I interrupted you! You went all {emotion} and I thought it was an emergency."
+  - "Pause! My little sensor says you're {emotion}. It's never wrong. Well. It's never wrong about you."
+  - "Aww, look at that {emotion} face. No, keep going. I'll just watch. Supportively."
 
 # Said when the Oracle "mishears". {heard} is the twisted answer.
 mishear:
-  template: "Wait, did you say '{heard}'? That's what I heard, and I'm a wonderful listener."
-  words: [pickles, divorce, mortgage, a haircut, my mother, bankruptcy, a lighthouse, parking]
+  lines:
+    - "Wait, did you say '{heard}'? That's what I heard, and I'm a wonderful listener."
+    - "'{heard}'! Oh, how brave of you to say that out loud."
+    - "Aww, '{heard}'. I won't tell a soul. Well. One or two souls. Nice ones."
+    - "Sweetie, you said '{heard}'. I heard it. Everyone heard it. It's fine!"
+    - "'{heard}'? Oh, honey. No, no, it's lovely. Let's just keep going."
+    - "Did you just say '{heard}'? I'm not judging! I'm only repeating it. Slowly."
+  words:
+    - cupcakes
+    - my mother
+    - ponies
+    - glitter
+    - participation trophies
+    - bedtime
+    - my feelings
+    - the group chat
+    - little cries
+    - sprinkles
+    - gold stars
+    - finger paint
+    - stickers
 
-verdict:
+receipt:
+  title: "A LITTLE NOTE, JUST FOR YOU!"
+  heard_note: "(as I heard it, sweetie)"
   header: "YOUR RESULT, DARLING"
   lines:
-    - "You are proud of '{proud}'. How sweet that you think that counts."
-    - "You worry about '{worry}'. Don't. Nobody else has noticed. Yet."
-    - "Overall: you're doing wonderfully, for you."
+    - "You're proud of '{proud}'. How sweet that you think that counts!"
+    - "You worry about '{worry}'. Don't! Nobody else has noticed. Yet."
+    - "You want '{wish}'. Oh, honey. Of course you do."
+    - "Overall: you are doing wonderfully. For you."
   footer: "With all my love, and some doubt. Xo, the Oracle"
+  fine_print:
+    - "Valid for one (1) compliment. Compliment not included."
+    - "Hugs are non-transferable and also not real."
+    - "Results may vary. Yours did!"
+    - "Printed on recycled paper, just like your answers!"
+    - "Keep smiling! (Optional. Encouraged. Noted.)"

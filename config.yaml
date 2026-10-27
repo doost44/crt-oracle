@@ -9,15 +9,33 @@ story:
   mishear_rate: 0.25
 
 display:
-  backend: console        # console now; "crt" (full-screen) is planned
+  backend: console        # console (terminal) | crt (full-screen phosphor, needs .[crt])
   cols: 80
   rows: 24
   typewriter_delay: 0.02  # seconds per character
   color: green            # green | amber | none
+  # CRT backend only:
+  fullscreen: true        # false opens a window instead (handy while developing)
+  window: [1024, 768]     # window size when fullscreen is false
+  font: ""                # blank picks Consolas, Courier New or another monospace font
+  scanlines: true
+  glow: true
+  flicker: 0.03           # 0 turns flicker off; 0.1 is a lot
 
 camera:
-  backend: mock           # mock | opencv
-  device_index: 0         # which camera OpenCV opens (see tools/list_cameras.py)
+  backend: opencv         # opencv (a real camera) | mock (no camera; or run with --no-camera)
+  device_index: 0         # which camera OpenCV opens: 0 is usually the built-in webcam
+                          # (see tools/list_cameras.py; the capture adapter is often 1)
+  api: auto               # auto | dshow | msmf | avfoundation | v4l2 | any
+                          # auto = dshow on Windows, avfoundation on macOS
+  preview: feed           # operator window: feed (webcam + face boxes) | box (face boxes
+                          # on black, no image of the visitor) | off
+  detect_fps: 10          # face detections per second
+  detect_width: 640       # shrink wider frames to this before detecting (0 = never)
+  min_face_size: 40       # ignore faces smaller than this, in camera pixels
+  detector: yunet         # yunet (neural-net model, handles angles and dim light) | haar (old)
+  score_threshold: 0.6    # yunet only: lower (e.g. 0.4) finds more faces, and more false ones
+  # Frames are never saved: only the latest one is held in memory, for the preview.
 
 face:
   enabled: true
@@ -29,3 +47,13 @@ printer:
   width: 32               # characters per line on the receipt
   out_dir: out            # where "file" receipts are written
   lp_destination: ""      # printer name for the "lp" backend
+
+# The live conversation: python -m oracle.server (docs/LIVE_ORACLE.md).
+# The API key is never stored here: set ANTHROPIC_API_KEY in the environment.
+live:
+  brain: auto             # auto (Claude when ANTHROPIC_API_KEY is set) | claude | mock
+  model: claude-opus-5-5
+  effort: low             # low = quick replies; medium/high think longer and cost more
+  max_tokens: 4000        # per reply, thinking included
+  max_turns: 8            # visitor answers before the Oracle wraps up
+  log_dir: out/sessions   # one .jsonl transcript per visitor
