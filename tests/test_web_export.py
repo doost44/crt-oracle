@@ -124,10 +124,20 @@ def test_fresh_face_export_matches_committed(export_web):
     assert (a != b).mean() < 0.02, "face colour classes differ from a fresh export"
 
 
-def test_index_html_files_exist():
-    """Every script and stylesheet the page loads is in web/ (so Pages serves it)."""
-    html = (WEB / "index.html").read_text(encoding="utf-8")
+@pytest.mark.parametrize("page", ["index.html", "readout.html"])
+def test_page_files_exist(page):
+    """Every script and stylesheet a page loads is in web/ (so Pages serves it)."""
+    html = (WEB / page).read_text(encoding="utf-8")
     refs = re.findall(r'<(?:script[^>]*\bsrc|link[^>]*\bhref)="([^"]+)"', html)
     assert refs
     missing = [r for r in refs if "://" not in r and not (WEB / r).is_file()]
-    assert not missing, f"web/index.html loads files that don't exist: {missing}"
+    assert not missing, f"web/{page} loads files that don't exist: {missing}"
+
+
+def test_vision_versions_match():
+    """tools/fetch_vision.py downloads the tracker version that web/js/vision.js asks for."""
+    tool = (ROOT / "tools" / "fetch_vision.py").read_text(encoding="utf-8")
+    js = (WEB / "js" / "vision.js").read_text(encoding="utf-8")
+    py_version = re.search(r'^VERSION = "([^"]+)"', tool, re.M).group(1)
+    js_version = re.search(r'VISION_VERSION = "([^"]+)"', js).group(1)
+    assert py_version == js_version
