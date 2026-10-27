@@ -18,6 +18,7 @@
  * Contract, the same as Oracle.scenes.face so main.js can swap it in:
  *   Oracle.scenes.figure.frame(grid, t, opts)
  *     opts.region       {x, y, w, h} cells it may draw in
+ *     opts.margin       room around the figure (1 fills the region; more is smaller)
  *     opts.personality  "sugar" | "weary" | "clinical" (null keeps the last one)
  *     opts.mood         "talking" | "idle"
  *     opts.look         {x, y} in -1..1, or null to look around on its own
@@ -482,13 +483,13 @@
       fig.update(t, { talk: this.talk, look: L });
     }
 
-    renderOne(id, cols, rows, t) {
+    renderOne(id, cols, rows, t, margin) {
       const fig = this.figs[id];
       for (const k of Object.keys(this.figs)) this.figs[k].group.visible = k === id;
       this.pose(id, t);
       // Light swings slowly across the front, so the facets keep catching it.
       this.key.position.set(-2.2 + Math.sin(t * 0.21) * 1.6, 2.4 + Math.cos(t * 0.17) * 0.6, 3);
-      A.fitCamera(this.camera, cols, rows, this.cellAspect, fig.center, fig.radius, 1.0);
+      A.fitCamera(this.camera, cols, rows, this.cellAspect, fig.center, fig.radius, margin || 1.0);
       this.ascii.setSize(cols, rows);
       return this.ascii.render(this.scene, this.camera);
     }
@@ -498,7 +499,7 @@
     render(cols, rows, t, opts) {
       opts = opts || {};
       this.tick(t, opts);
-      const cur = this.renderOne(this.current, cols, rows, t);
+      const cur = this.renderOne(this.current, cols, rows, t, opts.margin);
       const n = cols * rows;
       const chars = new Array(n);
       const colors = new Array(n);
@@ -507,7 +508,7 @@
       // Switching: the new figure tears in over the old one, row by row and cell by cell.
       const p = this.switchAt == null ? 1 : (t - this.switchAt) / SWITCH_SECONDS;
       if (p < 1 && this.prev) {
-        const old = this.renderOne(this.prev, cols, rows, t);
+        const old = this.renderOne(this.prev, cols, rows, t, opts.margin);
         const oc = new Array(n);
         const ocol = new Array(n);
         paint(old, this.colors(this.prev), oc, ocol);

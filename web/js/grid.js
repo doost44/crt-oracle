@@ -23,6 +23,8 @@
     ink: "#0b1a8c",
   });
   const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
+  // The clean demo look (clean.html) uses heavier type, so blue on white reads well.
+  const WEIGHT = window.ORACLE_LOOK === "clean" ? "bold " : "";
   const TARGET_ROWS = 60; // about 60 rows tall on any screen; columns follow the width
 
   class Grid {
@@ -88,7 +90,7 @@
       const ctx = this.ctx;
       ctx.fillStyle = PALETTE.bg;
       ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-      ctx.font = `${this.cellH}px ${FONT}`;
+      ctx.font = `${WEIGHT}${this.cellH}px ${FONT}`;
       ctx.textBaseline = "top";
       let last = null;
       for (let y = 0; y < this.rows; y++) {

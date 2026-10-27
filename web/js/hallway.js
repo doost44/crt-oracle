@@ -579,8 +579,10 @@
     glitch(grid, amount, random);
     const tags = Math.floor((burst * 3 + late * 1.5) * fade * random());
     if (tags > 0) tagBlocks(grid, tags, Math.floor(t * 6));
-    edgeNoise(grid, (0.12 + 0.75 * late + 0.15 * burst) * (1 - flare), t, random);
-    vhs(grid, t, 0.35 + 0.5 * late + 0.8 * burst, random);
+    // The clean demo look keeps the edges calm: a quarter of the static and wobble.
+    const calm = window.ORACLE_LOOK === "clean" ? 0.25 : 1;
+    edgeNoise(grid, (0.12 + 0.75 * late + 0.15 * burst) * (1 - flare) * calm, t, random);
+    vhs(grid, t, (0.35 + 0.5 * late + 0.8 * burst) * calm, random);
   }
 
   Oracle.glitch = glitch;

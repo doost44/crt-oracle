@@ -67,6 +67,24 @@
     },
   };
 
+  // The clean demo look (clean.html sets window.ORACLE_LOOK = "clean"): white
+  // paper and blue ink for the boot screen and every personality alike, like a
+  // plain terminal. The accent slots are blues too, so nothing breaks the two tones.
+  if (window.ORACLE_LOOK === "clean") {
+    const ink = {
+      bg: "#ffffff",
+      fg: "#1f2bd6",
+      dim: "#8a91ea",
+      bright: "#0b159e",
+      orange: "#3445ff",
+      red: "#1f2bd6",
+      teal: "#5b6bff",
+      ink: "#ffffff",
+      bleed: "#1f2bd6",
+    };
+    for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, ink);
+  }
+
   const KEYS = Object.keys(THEMES.neutral);
   const SWITCH_MS = 900;
 
