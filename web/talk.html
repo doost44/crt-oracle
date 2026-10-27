@@ -10,7 +10,8 @@
 <body>
 <!-- The spoken Oracle: you talk, Claude answers as the Oracle, and the Oracle says
      it out loud in the voice of whichever mask it is wearing. The camera is never
-     used here. Speech recognition is the browser's; this page records nothing. -->
+     used on this page; the second screen (readout.html) has the camera. Speech
+     recognition is the browser's; nothing is recorded. -->
 <canvas id="screen" aria-hidden="true"></canvas>
 
 <main class="talk">
@@ -32,6 +33,7 @@
       <input id="typed-text" type="text" autocomplete="off" placeholder="or type your answer" aria-label="Your answer">
       <button type="submit">Say</button>
     </form>
+    <button class="quiet" type="button" data-second-screen>Second screen</button>
     <button id="stop" class="quiet" type="button">End</button>
   </div>
   <p id="note" class="note"></p>
@@ -46,6 +48,11 @@
     <button type="button" data-mask="weary">A rock</button>
     <button type="button" data-mask="clinical">A tree</button>
   </div>
+  <p class="second">
+    <button type="button" class="quiet" data-second-screen>Open the second screen</button>
+    <button type="button" class="quiet" id="be-second-screen">Make this window the second screen</button>
+  </p>
+  <p class="small">The second screen is the Oracle's eye: it shows you to yourself under its analysis, and checks the things it tells you to do. Put it on the other monitor; both windows must be in the same browser. Its camera picture never leaves the browser and is never saved.</p>
   <p class="small">Uses your microphone through the browser's speech recognition (in Chrome that sends audio to Google to transcribe). Nothing is recorded or saved, and the camera is not used. Replies come from Claude on your account.</p>
 </section>
 

@@ -10,8 +10,15 @@
  * viewer's own account. Anywhere else (the page opened from disk) a small canned
  * Oracle answers instead, so the flow can still be tried and tested.
  *
- * The camera is never used here. The microphone goes through the browser's speech
- * recognition (voice.js); this page never records, saves or uploads audio itself.
+ * The second monitor (readout.html) is the Oracle's eye. This page tells it who
+ * is speaking, what the visitor said and what the Oracle noticed, and when Claude
+ * gives a physical command ("look left", "hold still") the readout checks it with
+ * the camera and reports back, so the Oracle can react to what the visitor did.
+ * The two pages talk over a BroadcastChannel, so both must be open in the same
+ * browser. Only words and measurements cross between them, never pictures.
+ *
+ * This page never opens the camera itself. The microphone goes through the
+ * browser's speech recognition (voice.js); nothing records, saves or uploads audio.
  */
 (function () {
   "use strict";
@@ -20,6 +27,7 @@
 
   const MASKS = ["sugar", "weary", "clinical"];
   const MAX_TURNS = 8; // visitor answers before the Oracle must close
+  const COMMAND_WAIT_MS = 16000; // the readout gives up on a command after about 12 s
   const SYMBOL = { sugar: "sun", weary: "rock", clinical: "tree" };
 
   const VOICE_NOTE = `# This conversation is spoken
@@ -31,6 +39,21 @@ Your lines are spoken aloud by a synthetic voice that changes with your mask, so
 write them to be heard: plain words, short sentences, no ellipses, no symbols,
 no numbers written as digits unless Clinical is reading out a measurement.
 There is no camera in this version. Never claim to see the visitor.`;
+
+  // When the second monitor has the camera running, this replaces the last line above.
+  const EYE_NOTE = `# The camera and commands
+
+A second monitor beside you shows the visitor their own face under your analysis.
+The camera only measures where the head points, the eyes, the mouth and distance;
+it does not see appearance, and you still never comment on looks. The room note
+says whether a face is in view.
+
+You can make the visitor do something. Set "command" to one of these and say the
+instruction in your lines, in the mask's voice; the camera checks whether they did
+it, and you hear back how it went in the next note from the room:
+{COMMANDS}
+Use it sparingly, at most once every three turns, when making them obey says
+something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
 
   // --- the screen ------------------------------------------------------------------
 
@@ -44,6 +67,7 @@ There is no camera in this version. Never claim to see the visitor.`;
     busy: false,
     over: false,
     asked: 0, // when the Oracle finished speaking, for the room note's timing
+    commanded: -99, // the turn the last command was given
   };
 
   function figureRegion() {
@@ -122,6 +146,68 @@ There is no camera in this version. Never claim to see the visitor.`;
   };
   if (window.speechSynthesis) speechSynthesis.addEventListener("voiceschanged", () => (assigned = null));
 
+  // --- the second monitor ----------------------------------------------------------
+
+  const COMMANDS = {
+    look_left: "look left",
+    look_right: "look right",
+    look_up: "look up",
+    look_down: "look down",
+    close_eyes: "close your eyes (held 2 s)",
+    come_closer: "come closer",
+    step_back: "step back",
+    hold_still: "hold still (3 s)",
+    open_mouth: "open your mouth",
+    smile: "smile",
+  };
+
+  const bus = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("crt-oracle") : null;
+  const eye = { seen: 0, camera: "off", face: false, results: new Map() };
+  const post = (msg) => bus && bus.postMessage(Object.assign({ from: "main" }, msg));
+  const eyeLinked = () => performance.now() - eye.seen < 3000;
+  const eyeLive = () => eyeLinked() && eye.camera === "live";
+
+  let lastShared = "";
+  function shareState(force) {
+    const s = { type: "oracle", scene: state.over ? "done" : !state.mask ? "waiting" : state.watching ? "watching" : state.busy ? "thinking" : "listening", personality: state.mask, talking: state.talking };
+    const key = JSON.stringify(s);
+    if (force || key !== lastShared) post(s);
+    lastShared = key;
+  }
+  if (bus) {
+    bus.onmessage = (e) => {
+      const msg = e.data || {};
+      if (msg.from !== "readout") return;
+      if (msg.type === "hello") shareState(true);
+      if (msg.type === "eye") Object.assign(eye, { seen: performance.now(), camera: msg.camera, face: !!msg.face });
+      if (msg.type === "command-result") {
+        const waiting = eye.results.get(msg.id);
+        if (waiting) waiting(msg);
+      }
+    };
+    setInterval(() => shareState(true), 1000);
+  }
+
+  /* Ask the readout to watch for a command; resolves with how it went. */
+  function command(action, mask) {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    return new Promise((resolve) => {
+      const done = (msg) => {
+        clearTimeout(timer);
+        eye.results.delete(id);
+        resolve(msg);
+      };
+      const timer = setTimeout(() => done({ status: "lost" }), COMMAND_WAIT_MS);
+      eye.results.set(id, done);
+      post({ type: "command", id, action, label: COMMANDS[action], personality: mask });
+    });
+  }
+
+  function openSecondScreen() {
+    const w = window.open("readout.html", "oracle-readout", "popup,width=1280,height=800");
+    if (!w) note.textContent = "The browser blocked the second screen. Open readout.html in another window instead.";
+  }
+
   // --- Claude ----------------------------------------------------------------------
 
   let sample = null;
@@ -133,14 +219,22 @@ There is no camera in this version. Never claim to see the visitor.`;
     return state.events
       .map((e) =>
         e.who === "oracle"
-          ? `ORACLE (${e.mask}): ${e.lines.join(" / ")}`
+          ? `ORACLE (${e.mask}): ${e.lines.join(" / ")}${e.command ? ` [command: ${e.command}]` : ""}`
+          : e.who === "room"
+          ? `ROOM: ${e.text}`
           : `VISITOR${e.seconds != null ? ` (took ${e.seconds} s)` : ""}: ${e.text}`
       )
       .join("\n");
   }
 
   function buildPrompt(opening) {
-    const parts = [window.ORACLE_PROMPT ? window.ORACLE_PROMPT.system : "", VOICE_NOTE];
+    const live = eyeLive();
+    const commands = Object.entries(COMMANDS).map(([id, label]) => `- ${id}: ${label}`).join("\n");
+    const parts = [
+      window.ORACLE_PROMPT ? window.ORACLE_PROMPT.system : "",
+      live ? VOICE_NOTE.replace(/\nThere is no camera[^\n]*$/, "") : VOICE_NOTE,
+    ];
+    if (live) parts.push(EYE_NOTE.replace("{COMMANDS}", commands));
     if (opening) {
       parts.push(
         `# Now\n\nA visitor has just walked up and chose the ${SYMBOL[opening]}, so you open as ${cap(opening)}. ` +
@@ -150,14 +244,18 @@ There is no camera in this version. Never claim to see the visitor.`;
       const last = state.events[state.events.length - 1];
       const room = [`turn: ${state.turn} of ${MAX_TURNS}`];
       if (last && last.seconds != null) room.push(`seconds the visitor took to answer: ${last.seconds}`);
-      room.push("camera: none in this version");
+      if (!live) room.push("camera: none in this version");
+      else room.push(`camera: ${eye.face ? "a face is in view" : "nobody in view right now"}`);
+      if (last && last.who === "room") room.push("The visitor has not spoken since your command. React to how it went, then carry on.");
+      if (live && state.turn - state.commanded < 3) room.push("no command this turn: you gave one recently");
       if (state.turn >= MAX_TURNS) room.push("FINAL TURN: close the conversation now and set end to true.");
       parts.push("# The conversation so far\n\n" + transcript() + "\n\n<room>\n" + room.join("\n") + "\n</room>");
     }
     parts.push(
       "# Your reply\n\nAnswer with JSON only, no other text:\n" +
         '{"personality": "sugar" | "weary" | "clinical", "lines": ["one to three short lines"], "end": false, ' +
-        '"why": "a few words for the operator: what you noticed and why this mask is speaking"}'
+        '"why": "a few words for the operator: what you noticed and why this mask is speaking"' +
+        (live ? ', "command": "none" | one of the commands above}' : "}")
     );
     return parts.join("\n\n");
   }
@@ -180,6 +278,7 @@ There is no camera in this version. Never claim to see the visitor.`;
         .slice(0, 3),
       end: !!(reply && reply.end),
       why: reply && reply.why ? String(reply.why) : "",
+      command: reply && COMMANDS[reply.command] ? reply.command : null,
     };
   }
 
@@ -213,7 +312,8 @@ There is no camera in this version. Never claim to see the visitor.`;
   function setMic(mode) {
     mic.dataset.state = mode;
     mic.disabled = mode === "thinking" || mode === "speaking" || state.over;
-    micLabel.textContent = { idle: "Tap to talk", listening: "Listening", thinking: "Thinking", speaking: "Speaking" }[mode] || "Tap to talk";
+    mic.disabled = mic.disabled || mode === "watching";
+    micLabel.textContent = { idle: "Tap to talk", listening: "Listening", thinking: "Thinking", speaking: "Speaking", watching: "Watching you" }[mode] || "Tap to talk";
   }
 
   async function speakLines(mask, lines) {
@@ -250,12 +350,35 @@ There is no camera in this version. Never claim to see the visitor.`;
       return;
     }
     if (!reply.lines.length) reply.lines = ["Mm."];
+    // A command only when the camera can check it, not on the last turn, and not twice running.
+    const last = state.events[state.events.length - 1];
+    const ending = reply.end || state.turn >= MAX_TURNS;
+    if (!eyeLive() || ending || (last && last.who === "room") || state.turn - state.commanded < 3) reply.command = null;
     wearMask(reply.mask, reply.why);
-    state.events.push({ who: "oracle", mask: reply.mask, lines: reply.lines });
+    state.events.push({ who: "oracle", mask: reply.mask, lines: reply.lines, command: reply.command });
+    if (reply.why) post({ type: "note", personality: reply.mask, text: reply.why });
+    post({ type: "said", who: "oracle", personality: reply.mask, text: reply.lines.join(" ") });
     await speakLines(reply.mask, reply.lines);
+    shareState();
+    if (reply.command && !state.over) {
+      state.commanded = state.turn;
+      setMic("watching");
+      state.watching = true;
+      const started = performance.now();
+      const result = await command(reply.command, reply.mask);
+      state.watching = false;
+      if (state.over) return;
+      const secs = ((performance.now() - started) / 1000).toFixed(1);
+      const how =
+        result.status === "done" ? `the visitor did it, after ${secs} s` :
+        result.status === "timeout" ? (result.hint === "no_face" ? "the visitor left the camera's view instead" : "the visitor did not do it") :
+        "the camera lost track; nobody knows whether they did it";
+      state.events.push({ who: "room", text: `command ${reply.command}: ${how}` });
+      return oracleTurn(null);
+    }
     state.busy = false;
     state.asked = performance.now();
-    if (reply.end || state.turn >= MAX_TURNS) return finish();
+    if (ending) return finish();
     setMic("idle");
     if (voice.canListen) listen();
   }
@@ -265,6 +388,7 @@ There is no camera in this version. Never claim to see the visitor.`;
     if (!text || state.busy || state.over) return;
     voice.cancel();
     heard.textContent = text;
+    post({ type: "said", who: "visitor", text });
     state.turn += 1;
     const seconds = state.asked ? Math.round((performance.now() - state.asked) / 1000) : null;
     state.events.push({ who: "visitor", text, seconds });
@@ -300,12 +424,14 @@ There is no camera in this version. Never claim to see the visitor.`;
     mic.disabled = true;
     note.textContent = "The Oracle is done with you.";
     $("stop").textContent = "Begin again";
+    shareState();
   }
 
   function begin(mask) {
     // Speak nothing once inside the click, so browsers that need a gesture let speech start.
     if (voice.canSpeak) speechSynthesis.speak(new SpeechSynthesisUtterance(""));
-    Object.assign(state, { events: [], turn: 0, over: false, busy: false, asked: 0 });
+    Object.assign(state, { events: [], turn: 0, over: false, busy: false, asked: 0, commanded: -99 });
+    post({ type: "reset" });
     said.textContent = heard.textContent = note.textContent = $("why").textContent = "";
     $("stop").textContent = "End";
     $("start").hidden = true;
@@ -316,6 +442,9 @@ There is no camera in this version. Never claim to see the visitor.`;
     oracleTurn(mask);
   }
 
+  document.querySelectorAll("[data-second-screen]").forEach((b) => b.addEventListener("click", openSecondScreen));
+  const here = $("be-second-screen");
+  if (here) here.addEventListener("click", () => (location.href = "readout.html"));
   document.querySelectorAll(".picks button").forEach((b) => b.addEventListener("click", () => begin(b.dataset.mask)));
   mic.addEventListener("click", () => (mic.dataset.state === "listening" ? voice.cancel() : listen()));
   $("typed").addEventListener("submit", (e) => {
@@ -336,5 +465,5 @@ There is no camera in this version. Never claim to see the visitor.`;
   });
 
   // For tests: the state, and a way to answer without a microphone.
-  Oracle.talk = { state, answer, voice };
+  Oracle.talk = { state, answer, voice, eye };
 })();

@@ -219,7 +219,26 @@ where the computer has enough of them, on top of voice.js's pitch and rate.
   microphone isn't allowed, a text box takes the answers instead. The camera is
   never used, and nothing is recorded or saved.
 
-Test: `node web/tests/talk.e2e.js` (Claude and the voices stubbed, answers typed).
+**Second monitor.** The readout screen (`readout.html`, below) is the spoken
+Oracle's eye. Open it with **Second screen** on the talk page (or in another
+window of the same browser) and drag it to the other monitor. Once its camera is
+live:
+
+- it shows who is speaking, what the visitor just said, and Claude's private note
+  on each turn ("Weary: one-word answers, going through the motions") in its
+  ANALYSIS log;
+- the Oracle can give physical commands. Claude may set a `command` (look left,
+  close your eyes, hold still, smile...) at most once every three turns and says
+  it out loud; the instruction appears over the picture with a progress bar, the
+  face landmarks check it (`js/actions.js`), and COMPLIED or FAILED goes back to
+  the Oracle, which reacts before the conversation carries on.
+
+Without the readout (or without a camera) the Oracle gives no commands. Only words
+and measurements pass between the two windows, never pictures.
+
+Tests: `node web/tests/talk.e2e.js` (Claude and the voices stubbed, answers typed)
+and `node web/tests/talk_readout.e2e.js face.jpg` (both screens, a fake camera
+showing the photo, a scripted "hold still" command checked by the tracker).
 
 ## Files
 
