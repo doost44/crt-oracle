@@ -34,6 +34,6 @@ body { font-family: var(--font); }
   position: fixed; left: 0; right: 0; bottom: 0; height: 40vh;
   padding: 0 4ch 2.5vh; overflow: hidden;
   display: flex; flex-direction: column; justify-content: flex-end;
-  font-size: calc(var(--cell) * 1.0); line-height: 1.25;
+  font-size: max(14px, calc(var(--cell) * 1.15)); line-height: 1.25;
   text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
 }

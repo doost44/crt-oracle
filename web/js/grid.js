@@ -19,7 +19,7 @@
     ink: "#0b1a8c",
   };
   const FONT = 'Consolas, "Lucida Console", "Courier New", monospace';
-  const TARGET_ROWS = 48; // about 48 rows tall on any screen; columns follow the width
+  const TARGET_ROWS = 60; // about 60 rows tall on any screen; columns follow the width
 
   class Grid {
     constructor(canvas) {

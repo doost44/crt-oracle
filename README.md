@@ -4,6 +4,10 @@ A deceptive little oracle for a gallery installation. A Panasonic camcorder is i
 
 This is the starter repo: the story engine, three personalities, the camera and face-box logic, a console display and a file-based receipt printer. It runs with **no hardware**, so you can build the content and logic first and add the hardware step by step.
 
+## Web version
+
+A browser version of the Oracle lives in [web/](web/): static HTML, CSS and JavaScript that reads the same `content/` files. It runs locally with `py -m http.server 8000 -d web` and publishes to GitHub Pages at https://doost44.github.io/crt-oracle/. How to run, re-export the content and publish: [web/README.md](web/README.md).
+
 ## Quick start
 
 ```bash

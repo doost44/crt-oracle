@@ -1,0 +1,79 @@
+# Tests the web version, then publishes the web/ folder to GitHub Pages.
+#
+# One-time setup on GitHub: Settings > Pages > Build and deployment >
+# Source: GitHub Actions. After that, every push to main deploys to
+# https://doost44.github.io/crt-oracle/ (or run it by hand from the Actions tab).
+
+name: Web version (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Least privilege by default; the deploy job asks for more below.
+permissions:
+  contents: read
+
+# One deployment at a time. A newer push waits instead of cancelling a
+# deployment that is already running.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+
+      - name: Install the Python package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,camera]"
+
+      - name: Check the committed web/data is up to date
+        run: |
+          python tools/export_web.py
+          if ! git diff --exit-code --stat web/data || [ -n "$(git status --porcelain web/data)" ]; then
+            git status --short web/data
+            echo "::error::web/data is out of date. Run 'python tools/export_web.py' and commit web/data."
+            exit 1
+          fi
+
+      - name: Python tests
+        run: python -m pytest -q
+
+      - name: Story engine tests (Node)
+        run: node web/tests/story.test.js
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -7,6 +7,9 @@ You are helping build CRT Oracle, a gallery installation for an art class. A Pan
 Files in this project:
 - The `crt-oracle` repo (zip): a working Python starter with no hardware needed. Start with its README.
 - `docs/PLAN.md`: the plan, aesthetic, personalities, hardware status and roadmap.
+- `docs/WEB_BUILD_PROMPT.md`: the brief for the GitHub Pages web version.
+- `docs/references/`: four visual references, with a README saying what each is for.
+- `assets/oracle-face/`: the painted face as color, height, mask and sculpt maps.
 
 How to work:
 - Keep what the visitor reads in `content/` as plain text, so the writing can change without code changes. Run `python -m pytest` after edits.
@@ -15,5 +18,7 @@ How to work:
 - The camera never saves frames. OpenCV stays below version 5.
 - The user (Charlie) writes the questions and supplies images to convert to ASCII. Don't invent final questions; mark placeholders.
 - Hardware is built up in steps: capture adapter, then CRT over VGA, then printer. Say what is confirmed and what is untested.
+- Charlie works on Windows in PowerShell. Give commands for that.
+- Never put an API key in client code.
 
 Workstreams that can run separately: story content, full-screen CRT display, live camera and face box, speech input, receipt printer.

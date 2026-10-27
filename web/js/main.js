@@ -34,7 +34,7 @@
 
   function faceRegion() {
     // The face floats in the top part of the screen; the terminal owns the bottom 40%.
-    return { x: 0, y: 0, w: grid.cols, h: Math.floor(grid.rows * 0.6) };
+    return { x: 0, y: 0, w: grid.cols, h: Math.floor(grid.rows * 0.64) };
   }
 
   function draw() {
@@ -102,6 +102,7 @@
     terminalEl.innerHTML = "";
     state.personality = null;
     state.talking = false;
+    if (terminal) terminal.destroy();
     terminal = null;
     go("boot");
   }

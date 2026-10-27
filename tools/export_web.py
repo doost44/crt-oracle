@@ -105,7 +105,7 @@ def build_face() -> dict:
 def write_js(path: Path, name: str, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     body = json.dumps(data, ensure_ascii=False, indent=1 if name == "ORACLE_CONTENT" else None)
-    path.write_text(f"{HEADER}window.{name} = {body};\n", encoding="utf-8")
+    path.write_text(f"{HEADER}window.{name} = {body};\n", encoding="utf-8", newline="\n")
     print(f"wrote {path.relative_to(ROOT)}")
 
 
