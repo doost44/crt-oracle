@@ -9,11 +9,18 @@ story:
   mishear_rate: 0.25
 
 display:
-  backend: console        # console now; "crt" (full-screen) is planned
+  backend: console        # console (terminal) | crt (full-screen phosphor, needs .[crt])
   cols: 80
   rows: 24
   typewriter_delay: 0.02  # seconds per character
   color: green            # green | amber | none
+  # CRT backend only:
+  fullscreen: true        # false opens a window instead (handy while developing)
+  window: [1024, 768]     # window size when fullscreen is false
+  font: ""                # blank picks Consolas, Courier New or another monospace font
+  scanlines: true
+  glow: true
+  flicker: 0.03           # 0 turns flicker off; 0.1 is a lot
 
 camera:
   backend: opencv         # opencv (a real camera) | mock (no camera; or run with --no-camera)

@@ -26,6 +26,17 @@ python -m oracle --no-camera     # play it without a webcam
 
 Step-by-step for macOS and Windows, and what to expect: [docs/RUN_ON_LAPTOP.md](docs/RUN_ON_LAPTOP.md).
 
+### The CRT display
+
+The full-screen phosphor display needs pygame: `pip install -e ".[crt]"`.
+
+```bash
+python -m oracle --display crt --window --demo   # watch the demo in a window
+python -m oracle --display crt                   # full screen, keyboard input
+```
+
+Set `display.backend: crt` in `config.yaml` to make it the default. It draws the 80x24 grid stretched to fill the screen, with glow, scanlines, a little flicker and a sync-tear glitch. Any story node can set `glitch: true` to glitch the screen before its text. **Ctrl+Q** quits.
+
 Requires Python 3.10 or newer.
 
 ## How it works
@@ -39,6 +50,7 @@ oracle/
   session.py       one visitor's state: choices, answers, what the Oracle "heard"
   runner.py        plays a session: display, input, camera, interruptions, receipt
   display.py       ConsoleDisplay (typewriter text, ASCII art, menus)
+  crt.py           CrtDisplay: full-screen phosphor display and keyboard input (pygame)
   inputs.py        KeyboardInput, ScriptedInput, SpeechInput (placeholder)
   interrupter.py   rules for when the Oracle interrupts a watched face
   live.py          live webcam: background watcher, face-box preview window
@@ -79,7 +91,8 @@ Proposed pairing, easy to change in `story.yaml`: **sun = Sugar** (cheerful, cru
 - `story.mishear_rate` in `config.yaml` is the chance the Oracle swaps one word of a typed answer. The visitor's real answer is kept; the receipt shows what the Oracle "heard".
 - With a face in view for `min_face_seconds`, and at least `min_gap_seconds` since the last one, the Oracle interrupts with a line from its personality. The emotion shown is a deliberately unreliable guess. Interruptions never fire during the verdict.
 - With the webcam (`camera.backend: opencv`), `oracle/live.py` watches the camera in a background thread, so the Oracle interrupts as soon as the rules allow, even while the visitor is typing. A preview window shows the face box (`camera.preview: feed`, `box` for boxes on black, or `off`). Frames are never saved; `tests/test_camera_privacy.py` guards that.
-- With `--no-camera` or `--demo`, interruptions are checked **between** story steps.
+- The CRT display checks for interruptions while it types and while the visitor types, so the Oracle can cut in mid-sentence (with the CRT display the preview window is off).
+- With `--no-camera` or `--demo` in the console build, interruptions are checked **between** story steps.
 
 ## Adding the hardware
 
@@ -91,7 +104,6 @@ OpenCV is pinned below version 5 because OpenCV 5 dropped the classic face detec
 
 ## Not built yet
 
-- Full-screen CRT display with the phosphor look (replaces ConsoleDisplay)
 - Speech input (`SpeechInput` is a stub; it only needs a `read_line()` method)
 - Final questions, ASCII art from your images, and polished personality scripts
 - Attract screen, reset between visitors, auto restart

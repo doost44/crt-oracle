@@ -1,4 +1,4 @@
-"""Command-line entry point: python -m oracle [--demo] [--no-camera] [--camera-check]"""
+"""Command-line entry point: python -m oracle [--demo] [--no-camera] [--camera-check] [--display crt]"""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 
 from oracle.camera import MockCamera, MockDetector, make_camera_and_detector
 from oracle.config import load_config
+from oracle.crt import Quit
 from oracle.display import ConsoleDisplay, make_display
 from oracle.inputs import KeyboardInput, ScriptedInput
 from oracle.interrupter import Interrupter
@@ -20,6 +21,19 @@ from oracle.story import Story
 DEMO_INPUT = [
     "1", "I once fixed a stranger's bike", "I worry I peaked in school", "a quiet week off", "", "", "",
 ]
+
+
+class _EchoInput:
+    """Scripted answers that also appear on the CRT, as if someone typed them."""
+
+    def __init__(self, display, lines: list[str]) -> None:
+        self.display = display
+        self.scripted = ScriptedInput(lines)
+
+    def read_line(self, prompt: str = "> ") -> str:
+        line = self.scripted.read_line(prompt)
+        self.display.show_input(prompt, line)
+        return line
 
 
 class _FakeClock:
@@ -49,6 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         "--camera-check", action="store_true", help="show the webcam with face boxes; no story"
     )
     parser.add_argument("--preview", choices=["feed", "box", "off"], help="override camera.preview")
+    parser.add_argument("--display", choices=["console", "crt"], help="override display.backend")
+    parser.add_argument("--window", action="store_true", help="CRT display in a window, not full screen")
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -56,10 +72,15 @@ def main(argv: list[str] | None = None) -> int:
         cfg["camera"]["backend"] = "mock"
     if args.preview:
         cfg["camera"]["preview"] = args.preview
+    if args.display:
+        cfg["display"]["backend"] = args.display
+    if args.window:
+        cfg["display"]["fullscreen"] = False
     if args.camera_check:
         from oracle.live import camera_check
 
         return camera_check(cfg)
+    crt = cfg["display"]["backend"] == "crt"
     base = Path(args.config).resolve().parent
     story = Story.load(_resolve(base, cfg["story"]["path"]))
     personalities = load_personalities(_resolve(base, cfg["story"]["personalities_dir"]))
@@ -73,17 +94,23 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     if args.demo:
-        display = ConsoleDisplay(cols=cfg["display"]["cols"], typewriter_delay=0)
-        inputs = ScriptedInput(DEMO_INPUT)
+        if crt:
+            display = make_display(cfg)
+            inputs = _EchoInput(display, DEMO_INPUT)
+        else:
+            display = ConsoleDisplay(cols=cfg["display"]["cols"], typewriter_delay=0)
+            inputs = ScriptedInput(DEMO_INPUT)
         camera, detector = MockCamera(), MockDetector([True])
         printer = FileReceiptPrinter(cfg["printer"]["out_dir"])
         clock = _FakeClock()
     else:
         display = make_display(cfg)
-        inputs = KeyboardInput()
+        inputs = display if crt else KeyboardInput()
         try:
             camera, detector = make_camera_and_detector(cfg)
         except RuntimeError as exc:  # OpenCV missing or too new
+            if crt:
+                display.close()
             raise SystemExit(f"{exc}\nOr play without a camera: python -m oracle --no-camera")
         printer = make_printer(cfg)
         clock = None
@@ -91,13 +118,32 @@ def main(argv: list[str] | None = None) -> int:
     if not args.demo and cfg["camera"]["backend"] == "opencv":
         from oracle.live import run_live  # webcam watched in a background thread
 
-        return run_live(cfg, session, display, inputs, art_dir, printer, camera, detector, interrupter)
+        try:
+            code = run_live(cfg, session, display, inputs, art_dir, printer, camera, detector, interrupter)
+            if crt and code == 0:
+                display.read_line("[press Enter] ")
+            return code
+        except Quit:
+            return 0
+        finally:
+            if crt:
+                display.close()
 
     kwargs = {"clock": clock} if clock else {}
-    result = run_session(
-        session, display, inputs, art_dir, printer,
-        camera=camera, detector=detector, interrupter=interrupter,
-        receipt_width=cfg["printer"]["width"], **kwargs,
-    )
+    try:
+        result = run_session(
+            session, display, inputs, art_dir, printer,
+            camera=camera, detector=detector, interrupter=interrupter,
+            receipt_width=cfg["printer"]["width"], **kwargs,
+        )
+        if crt and args.demo:
+            display.glitch(3.0)
+        elif crt:
+            display.read_line("[press Enter] ")
+    except Quit:
+        return 0
+    finally:
+        if crt:
+            display.close()
     print(f"\n[receipt: {result}]")
     return 0

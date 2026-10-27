@@ -43,6 +43,14 @@ python -m oracle --demo   # scripted visit, writes a receipt into out\
 python -m oracle          # play it yourself
 ```
 
+To try the full-screen CRT look on the laptop's own screen:
+
+```powershell
+pip install -e ".[crt]"
+python -m oracle --display crt --window --demo   # in a window
+python -m oracle --display crt                   # full screen; Ctrl+Q quits
+```
+
 Each time you open a new PowerShell window, `cd` into the folder and run `.\.venv\Scripts\Activate.ps1` first.
 
 ## 5. When the capture adapter arrives
@@ -56,4 +64,4 @@ The laptop's built-in webcam is usually camera 0, so the adapter is often camera
 
 ## 6. Connecting the CRT
 
-The CRT takes VGA only. Use the laptop's VGA port if it has one, otherwise an **active** HDMI-to-VGA adapter (a plain cable won't work). In Windows, open **Settings > System > Display**, pick the CRT, and choose a 4:3 resolution such as 1024x768 or 800x600. If the screen goes black, Windows reverts after 15 seconds; try a lower resolution.
+The CRT takes VGA only. Use the laptop's VGA port if it has one, otherwise an **active** HDMI-to-VGA adapter (a plain cable won't work). In Windows, open **Settings > System > Display**, pick the CRT, and choose a 4:3 resolution such as 1024x768 or 800x600. Set **Multiple displays** to *Show only on 2*, so the Oracle opens full screen on the CRT. If the screen goes black, Windows reverts after 15 seconds; try a lower resolution.

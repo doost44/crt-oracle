@@ -20,6 +20,13 @@ DEFAULTS: dict = {
         "rows": 24,
         "typewriter_delay": 0.02,
         "color": "green",
+        # Settings for the "crt" backend only:
+        "fullscreen": True,
+        "window": [1024, 768],
+        "font": "",
+        "scanlines": True,
+        "glow": True,
+        "flicker": 0.03,
     },
     # backend stays "mock" here so tests and --demo never need a camera;
     # config.yaml switches it to "opencv" for the real thing.
