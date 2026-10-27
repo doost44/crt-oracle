@@ -221,8 +221,9 @@ where the computer has enough of them, on top of voice.js's pitch and rate.
 
 **Second monitor.** The readout screen (`readout.html`, below) is the spoken
 Oracle's eye. Open it with **Second screen** on the talk page (or in another
-window of the same browser) and drag it to the other monitor. Once its camera is
-live:
+window of the same browser) and drag it to the other monitor. It opens in the
+talk page's clean look, blue ink on white (`readout.html?look=clean`; without
+`?look=` it keeps the green CRT look). Once its camera is live:
 
 - it shows who is speaking, what the visitor just said, and Claude's private note
   on each turn ("Weary: one-word answers, going through the motions") in its

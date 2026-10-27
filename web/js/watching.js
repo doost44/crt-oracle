@@ -60,7 +60,11 @@
     } catch (e) {
       // no permission to see the screens: open it here and drag it across
     }
-    window.open("readout.html" + location.search, "oracle-readout", features);
+    // The readout follows this screen's look (clean.html opens it clean).
+    const query = new URLSearchParams(location.search);
+    if (window.ORACLE_LOOK && !query.has("look")) query.set("look", window.ORACLE_LOOK);
+    const search = query.toString();
+    window.open("readout.html" + (search ? "?" + search : ""), "oracle-readout", features);
   }
 
   document.addEventListener("keydown", (e) => {

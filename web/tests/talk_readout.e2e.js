@@ -167,7 +167,8 @@ async function main() {
 
     step("open the second screen: the camera starts and finds the face");
     const readout = watch(await context.newPage(), "readout");
-    await readout.goto(base + "readout.html");
+    // In the clean look, as talk.html opens it.
+    await readout.goto(base + "readout.html?look=clean");
     await readout.waitForFunction(() => window.Oracle.presence.status === "live");
     await readout.waitForFunction(() => !!window.Oracle.presence.current, null, { timeout: 60000 });
 
