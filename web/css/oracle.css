@@ -37,3 +37,6 @@ body { font-family: var(--font); }
   font-size: max(14px, calc(var(--cell) * 1.15)); line-height: 1.25;
   text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
 }
+
+/* Exhibit mode (?kiosk=1): no cursor, nothing to select. */
+.kiosk, .kiosk * { cursor: none !important; user-select: none; -webkit-user-select: none; }

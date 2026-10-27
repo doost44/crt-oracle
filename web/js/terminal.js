@@ -1,7 +1,7 @@
 /* The terminal: the talking panel at the bottom of the screen, the story
  * runner (a port of oracle/runner.py) and the on-screen receipt.
  *
- *   const t = new Oracle.Terminal(el, { onTyping });
+ *   const t = new Oracle.Terminal(el, { onTyping, onChar });
  *   await t.say(text); await t.art(text); t.menu(labels);
  *   await t.readLine(prompt); await t.choose(labels); await t.pressEnter(count, text);
  *   t.clear(); t.destroy();
@@ -38,6 +38,7 @@
       opts = opts || {};
       this.el = el;
       this.onTyping = opts.onTyping || function () {};
+      this.onChar = opts.onChar || function () {};
       this.charMs = opts.charMs != null ? opts.charMs : 25;
       this.pauseMs = opts.pauseMs != null ? opts.pauseMs : 450;
       this.mode = null; // the current handler for keys and clicks, or null
@@ -157,8 +158,10 @@
             if (this.dead) return finish();
             const due = this.charMs > 0 ? Math.floor((performance.now() - started) / this.charMs) + 1 : chars.length;
             if (due > shown) {
+              const before = shown;
               shown = Math.min(chars.length, due);
               span.textContent = chars.slice(0, shown).join("");
+              if (chars.slice(before, shown).some((c) => c.trim())) this.onChar();
               this.fit();
             }
             if (shown >= chars.length) {

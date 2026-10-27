@@ -21,9 +21,12 @@
     faceStart: 0,
   };
 
+  const sound = Oracle.sound;
+
   function go(scene) {
     state.scene = scene;
     state.sceneStart = performance.now();
+    if (sound) sound.scene(scene, { duration: Oracle.scenes.hallway.duration });
   }
 
   function seconds(since) {
@@ -84,12 +87,14 @@
     go("face");
     terminal = new Oracle.Terminal(terminalEl, {
       onTyping: (on) => (state.talking = on),
+      onChar: () => sound && sound.tick(),
     });
     const seed = Math.floor(Math.random() * 2 ** 31);
     const result = await Oracle.runStory(window.ORACLE_CONTENT, terminal, {
       random: Oracle.rng(seed),
       onPersonality: (id) => (state.personality = id),
     });
+    if (sound) sound.print(1.5, 16); // in step with the receipt's feed animation
     Oracle.showReceipt(receiptEl, result.receipt, {
       personality: state.personality,
       onAgain: reset,
@@ -97,6 +102,7 @@
   }
 
   function reset() {
+    if (receiptEl._oracleReceiptCleanup) receiptEl._oracleReceiptCleanup();
     receiptEl.hidden = true;
     receiptEl.innerHTML = "";
     terminalEl.innerHTML = "";
@@ -123,5 +129,6 @@
 
   // Exposed for tests and for poking at it from the browser console.
   Oracle.app = { state, go, reset, grid };
+  if (sound) sound.scene("boot");
   requestAnimationFrame(loop);
 })();
