@@ -6,7 +6,7 @@
   --paper: #f4f0e4;
   --paper-edge: #e6e0cf;
   --paper-ink: #1b1d2a;
-  --you: rgba(244, 246, 255, 0.78);
+  --you: color-mix(in srgb, var(--fg) 78%, transparent);
 }
 
 /* --- the terminal ------------------------------------------------------------------ */
@@ -42,7 +42,7 @@
   background: var(--fg);
   color: var(--bg);
   text-shadow: none;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 8px var(--glow);
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
@@ -85,7 +85,7 @@
   background: var(--fg);
   color: var(--bg);
   text-shadow: none;
-  box-shadow: 0 0 6px rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 6px var(--glow);
   white-space: pre;
   animation: term-blink 1.06s steps(1, end) infinite;
 }
@@ -126,10 +126,10 @@
   position: fixed;
   inset: 0;
   z-index: 5;
-  background: rgba(11, 26, 140, 0.62);
+  background: var(--ink-a);
   animation: receipt-dim 0.4s ease-out both;
 }
-@keyframes receipt-dim { from { background: rgba(11, 26, 140, 0); } }
+@keyframes receipt-dim { from { background: transparent; } }
 
 .receipt-stage {
   height: 100%;
@@ -146,7 +146,7 @@
   flex: none;
   margin: auto 0;
   padding: 12px 0;
-  filter: drop-shadow(0 10px 14px rgba(3, 8, 60, 0.55)) drop-shadow(0 0 2px rgba(3, 8, 60, 0.4));
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 2px rgba(0, 0, 0, 0.45));
   animation: receipt-feed 1.5s steps(16, end) both;
 }
 @keyframes receipt-feed {
@@ -221,8 +221,8 @@
   display: flex;
   justify-content: space-between;
   gap: 1.5ch;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+  text-shadow: 0 0 4px var(--glow);
+  box-shadow: 0 0 10px var(--glow);
 }
 .receipt-btn:hover,
 .receipt-btn:focus-visible {

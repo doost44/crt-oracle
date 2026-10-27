@@ -1,19 +1,22 @@
-/* The boot screen and the hallway: a first-person drift down a tiled corridor,
- * drawn in characters, that glitches apart and flares white at the far end.
+/* The boot screen and the hallway: a first-person drift down a corridor, drawn
+ * in characters, that decays as you go and flares white at the far end.
  *
- * The hallway is a tiny raycaster into a box corridor. For every cell we cast
- * one ray, find where it hits a wall, the floor or the ceiling, look up the
- * tile pattern there (checkerboard floor and ceiling, diamond tiles on the
- * walls, after reference 01) and shade it by distance with a character ramp
- * (after reference 03). Glitches (after reference 02) come from two places:
- * bands of rows that sample the corridor from a different depth, and
- * Oracle.glitch, a post pass over the finished grid that the face scene can
- * reuse.
+ * The hallway is a tiny raycaster into a corridor that won't hold still: it
+ * bends, its walls bulge and lean and the floor sags (smooth noise along its
+ * length), and its tiles are worn into blotches. For every cell we cast one ray,
+ * find the wall, floor or ceiling it hits, and shade it by distance with a
+ * character ramp (after reference 03). Then the tape degrades it: bands of rows
+ * sampled from another depth, Oracle.glitch's tears and corrupted characters,
+ * blocks torn out and tagged with running numbers (the glitch tracking collage),
+ * static creeping in from the edges, and every row wobbling sideways like bad
+ * VHS tracking. The face scene reuses the last three.
  *
  * Exports:
  *   Oracle.scenes.boot    = { frame(grid, t) }
  *   Oracle.scenes.hallway = { duration, frame(grid, t) }
  *   Oracle.glitch(grid, amount, random)
+ *   Oracle.edgeNoise(grid, amount, t, random)
+ *   Oracle.vhs(grid, t, amount, random)
  */
 (function () {
   "use strict";
@@ -193,13 +196,157 @@
 
   Oracle.scenes.boot = { frame: bootFrame };
 
+  // --- noise ---------------------------------------------------------------------
+
+  function hashInt(i, seed) {
+    let h = Math.imul((i | 0) ^ Math.imul(seed | 0, 0x9e3779b1), 0x85ebca6b);
+    h ^= h >>> 13;
+    h = Math.imul(h, 0xc2b2ae35);
+    h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  }
+
+  /* Smooth 1D value noise, -1..1. */
+  function noise1(x, seed) {
+    const i = Math.floor(x);
+    const f = x - i;
+    const u = f * f * (3 - 2 * f);
+    return (hashInt(i, seed) * (1 - u) + hashInt(i + 1, seed) * u) * 2 - 1;
+  }
+
+  /* Smooth 2D value noise, 0..1. */
+  function noise2(x, y, seed) {
+    const ix = Math.floor(x);
+    const iy = Math.floor(y);
+    const fx = x - ix;
+    const fy = y - iy;
+    const ux = fx * fx * (3 - 2 * fx);
+    const uy = fy * fy * (3 - 2 * fy);
+    const s0 = Math.imul(iy, 57) + seed;
+    const s1 = s0 + 57;
+    const a = hashInt(ix, s0);
+    const b = hashInt(ix + 1, s0);
+    const c = hashInt(ix, s1);
+    const d = hashInt(ix + 1, s1);
+    return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+  }
+
+  // --- VHS: tracking wobble and static creeping in from the edges ------------------
+
+  const STATIC = " .`',:;-~^\"*░▒";
+
+  /* Make rows wobble sideways like a tape with bad tracking (grid.rowShift, in
+   * fractions of a cell, drawn by grid.render), with a band of worse tracking
+   * that rolls slowly down the screen. amount is 0..1. */
+  function vhs(grid, t, amount, random) {
+    if (!(amount > 0)) return;
+    random = random || Math.random;
+    const rows = grid.rows;
+    const cols = grid.cols;
+    const shift = grid.rowShift;
+    if (!shift) return;
+    const bandY = ((t * 0.09) % 1.5 - 0.25) * rows;
+    const bandH = 2 + amount * 5;
+    for (let y = 0; y < rows; y++) {
+      let s = amount * (0.45 * Math.sin(y * 0.19 + t * 2.1) + 0.25 * Math.sin(y * 0.047 - t * 0.8));
+      s += (random() - 0.5) * 0.25 * amount;
+      const d = (y - bandY) / bandH;
+      if (d > -1 && d < 1) {
+        const k = 1 - d * d;
+        s += k * amount * (2.5 + 2 * noise1(t * 7 + y * 0.6, 5));
+        // the band chews up the picture a little
+        const base = y * cols;
+        const bites = Math.floor(k * amount * cols * 0.08);
+        for (let b = 0; b < bites; b++) {
+          const i = base + Math.floor(random() * cols);
+          grid.chars[i] = STATIC[1 + Math.floor(random() * 6)];
+          grid.colors[i] = "dim";
+        }
+      }
+      shift[y] += s;
+    }
+  }
+
+  /* Static that creeps in from the edges of the screen. amount is 0..1, how far in
+   * it reaches (as a share of the way to the centre); its front is ragged and
+   * drifts, and it is thickest at the edge. Mostly dim, a few cold specks, like
+   * the blue noise around the tracking collage. */
+  function edgeNoise(grid, amount, t, random) {
+    if (!(amount > 0)) return;
+    random = random || Math.random;
+    const cols = grid.cols;
+    const rows = grid.rows;
+    const chars = grid.chars;
+    const colors = grid.colors;
+    const hx = cols / 2;
+    const hy = rows / 2;
+    for (let y = 0; y < rows; y++) {
+      const ey = Math.min(y + 0.5, rows - y - 0.5) / hy;
+      const base = y * cols;
+      for (let x = 0; x < cols; x++) {
+        const ex = Math.min(x + 0.5, cols - x - 0.5) / hx;
+        // corners go first; the sides follow
+        const e = Math.min(ex * 1.15, ey, Math.sqrt(ex * ey) * 1.05);
+        if (e > amount) continue;
+        const reach = amount * (0.45 + 0.75 * noise2(x * 0.07 + t * 0.35, y * 0.16 - t * 0.22, 77));
+        if (e >= reach) continue;
+        const k = 1 - e / reach; // 1 at the edge, 0 at the front
+        const i = base + x;
+        if (random() > k * 0.9 + 0.08) {
+          // near the front, only dim what is there
+          if (chars[i] !== " ") colors[i] = "dim";
+          continue;
+        }
+        const r = random();
+        chars[i] = STATIC[Math.floor(Math.min(0.999, r * (0.4 + k * 0.7)) * STATIC.length)];
+        const c = random();
+        colors[i] = c < 0.05 ? "teal" : c < 0.08 ? "bright" : c < 0.09 ? "red" : k > 0.6 && c < 0.45 ? "fg" : "dim";
+      }
+    }
+  }
+
+  /* Torn-out blocks of the picture, each tagged with a running number, after the
+   * glitch tracking collage. slot changes a few times a second, so a block holds
+   * still long enough to read and the numbers keep counting up. */
+  function tagBlocks(grid, count, slot) {
+    const random = makeRng(slot * 6151 + 3);
+    const cols = grid.cols;
+    const rows = grid.rows;
+    const chars = grid.chars;
+    const colors = grid.colors;
+    for (let k = 0; k < count; k++) {
+      const w = 5 + Math.floor(random() * 11);
+      const h = 2 + Math.floor(random() * 3);
+      const x0 = Math.floor(random() * (cols - w));
+      const y0 = Math.floor(random() * (rows - h));
+      const sx = Math.round((random() * 2 - 1) * 9);
+      const sy = Math.round((random() * 2 - 1) * 4);
+      for (let y = y0; y < y0 + h; y++) {
+        for (let x = x0; x < x0 + w; x++) {
+          const fx = x + sx;
+          const fy = y + sy;
+          if (fx < 0 || fy < 0 || fx >= cols || fy >= rows) continue;
+          const i = y * cols + x;
+          chars[i] = chars[fy * cols + fx];
+          colors[i] = colors[fy * cols + fx] === "dim" ? "fg" : "bright";
+        }
+      }
+      grid.text(x0, y0, String(52957 + slot * 4 + k), k % 2 ? "teal" : "orange");
+    }
+  }
+
   // --- hallway -----------------------------------------------------------------
 
+  /* A first-person drift down a corridor that won't hold still. The corridor
+   * bends, its walls bulge and lean, the floor sags, and the tiles are worn into
+   * blotches, so it reads as a place half remembered rather than a grid. The rows
+   * wobble like a tape with bad tracking, and static creeps in from the edges
+   * until the light at the far end takes over. */
+
   const DURATION = 9;
-  const HALF_W = 1.1; // corridor half width
+  const HALF_W = 1.1; // corridor half width, before it bulges
   const HALF_H = 1.0; // corridor half height
-  const FLOOR_TILE = 0.625; // 4 checker tiles across the floor
-  const WALL_TILE = 0.85;
+  const FLOOR_TILE = 0.7;
   const FOCAL = 0.8;
 
   // Short bursts of heavier glitch, at fixed times so every visit feels the same.
@@ -223,6 +370,25 @@
     return b;
   }
 
+  // The corridor's shape along its length (z).
+  function centreAt(z) {
+    return 0.8 * noise1(z * 0.27, 11) + 0.18 * noise1(z * 0.7, 12);
+  }
+  function wallAt(z, y, side) {
+    // side is +1 (right) or -1 (left); y lets the wall lean and bulge
+    const seed = side > 0 ? 21 : 23;
+    return centreAt(z) + side * HALF_W * (1 + 0.28 * noise1(z * 0.6, seed) + 0.1 * noise1(z * 1.9 + y * 1.4, seed + 1));
+  }
+  function side0(dx) {
+    return dx > 0 ? 1 : 0;
+  }
+  function floorAt(z, x) {
+    return -HALF_H * (1 + 0.14 * noise1(z * 0.5, 31) + 0.05 * noise1(z * 1.7 + x * 2.1, 33));
+  }
+  function ceilAt(z) {
+    return HALF_H * (1 + 0.12 * noise1(z * 0.45, 32));
+  }
+
   function hallwayFrame(grid, t) {
     const cols = grid.cols;
     const rows = grid.rows;
@@ -231,37 +397,38 @@
     ensureBands(rows);
 
     const flare = smoothstep(DURATION - 1.6, DURATION, t); // the far end turns white
-    const late = smoothstep(4.0, DURATION - 0.4, t); // glitch builds toward the end
+    const late = smoothstep(3.0, DURATION - 0.4, t); // the decay builds toward the end
     const burst = burstAt(t);
     const step = Math.floor(t * 30);
 
-    // Camera: drift forward, speed up near the end, sway and roll a little.
+    // Camera: drift forward, speed up near the end, follow the bends, sway and roll.
     const extra = Math.max(0, t - 6.5);
     const camZ = 1.1 * t + 0.55 * extra * extra;
-    const camX = 0.2 * Math.sin(t * 0.61) + 0.04 * Math.sin(t * 1.9);
-    const camY = -0.1 + 0.05 * Math.sin(t * 1.23);
-    const roll = 0.045 * Math.sin(t * 0.47 + 0.4) + 0.02 * late * Math.sin(t * 6.1);
-    const yaw = 0.06 * Math.sin(t * 0.37 + 1.0);
-    const pitch = 0.035 * Math.sin(t * 0.29 + 2.0);
+    const camX = centreAt(camZ + 0.6) * 0.85 + 0.12 * Math.sin(t * 0.61) + 0.04 * Math.sin(t * 1.9);
+    const camY = -0.1 + 0.06 * Math.sin(t * 1.23);
+    const roll = 0.06 * Math.sin(t * 0.47 + 0.4) + 0.03 * late * Math.sin(t * 6.1);
+    // look a little into the bend ahead
+    const yaw = 0.5 * (centreAt(camZ + 2.5) - centreAt(camZ)) + 0.05 * Math.sin(t * 0.37 + 1.0);
+    const pitch = 0.04 * Math.sin(t * 0.29 + 2.0);
     const cr = Math.cos(roll);
     const sr = Math.sin(roll);
     const cyw = Math.cos(yaw);
     const syw = Math.sin(yaw);
 
-    // Fog: far things fade into the blue. During the flare the far end turns
+    // Fog: far things fade into the dark. During the flare the far end turns
     // white and a glow grows out of the vanishing point until it fills the screen.
-    const fogK = 0.26;
+    const fogK = 0.3;
     const fogLevel = 0.02 + flare * 0.55;
-    const glowStrength = 0.55 + flare * 1.6;
-    const glowWidth = 0.0012 + flare * flare * flare * 2.4; // in (tan of angle) squared
+    const glowStrength = 0.5 + flare * 1.6;
+    const glowWidth = 0.0016 + flare * flare * flare * 2.4; // in (tan of angle) squared
 
     // Geometric tears: bands of rows that sample the corridor from another depth
     // and slide sideways. Held for a few frames so the eye can catch them.
     bandDepth.fill(0);
     bandShift.fill(0);
-    const tearAmount = 0.05 + 0.45 * late + 0.6 * burst;
+    const tearAmount = 0.04 + 0.35 * late + 0.6 * burst;
     const tearRandom = makeRng(Math.floor(t * 10) * 7919 + 17);
-    const tears = Math.floor(tearAmount * (1 + tearRandom() * 6));
+    const tears = Math.floor(tearAmount * (1 + tearRandom() * 5));
     for (let k = 0; k < tears; k++) {
       const y0 = Math.floor(tearRandom() * rows);
       const h = 1 + Math.floor(tearRandom() * (2 + 6 * tearAmount));
@@ -279,6 +446,7 @@
     const sxScale = cellAspect / halfRows;
     const syScale = 1 / halfRows;
     const pixAngle = syScale / FOCAL; // angular size of one cell, roughly
+    const drift = t * 0.15; // the stains crawl, slowly
 
     for (let y = 0; y < rows; y++) {
       const sy = (halfRows - y - 0.5) * syScale;
@@ -295,62 +463,81 @@
         const dx = rx * cyw + FOCAL * syw;
         const dz = FOCAL * cyw - rx * syw;
         const dy = ry;
-
-        const tw = dx > 0 ? (HALF_W - camX) / dx : dx < 0 ? (-HALF_W - camX) / dx : 1e9;
-        const th = dy > 0 ? (HALF_H - camY) / dy : dy < 0 ? (-HALF_H - camY) / dy : 1e9;
         const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
+        // Walls and floor are uneven, so the hit is found by a few fixed-point
+        // steps: guess a distance, look up the surface there, aim again.
+        let tw = 1e9;
+        if (dx !== 0) {
+          const side = dx > 0 ? 1 : -1;
+          tw = (centreAt(rowZ) + side * HALF_W - camX) / dx;
+          for (let k = 0; k < 2; k++) {
+            if (!(tw > 0)) break;
+            const w = wallAt(rowZ + dz * tw, camY + dy * tw, side);
+            tw = (w - camX) / dx;
+          }
+          if (!(tw > 0)) tw = 1e9;
+        }
+        let th = 1e9;
+        if (dy !== 0) {
+          th = ((dy > 0 ? HALF_H : -HALF_H) - camY) / dy;
+          for (let k = 0; k < 1; k++) {
+            if (!(th > 0)) break;
+            const z = rowZ + dz * th;
+            const h = dy > 0 ? ceilAt(z) : floorAt(z, camX + dx * th);
+            th = (h - camY) / dy;
+          }
+          if (!(th > 0)) th = 1e9;
+        }
+
         let v; // surface brightness, 0..1
-        let lineCh = null; // a drawn tile edge or corner seam, when close enough to see it
-        let seam = false;
+        let lineCh = null; // the wobbly seam where wall meets floor or ceiling
         let wall;
         let dist;
         if (tw < th) {
-          // Wall: diamond tiles, u along the corridor, v up the wall.
+          // Wall: worn plaster, with the ghost of tiles warped out of line.
           wall = true;
           dist = tw * len;
+          const hz = rowZ + dz * tw;
           const hy = camY + dy * tw;
-          const u = (rowZ + dz * tw) / WALL_TILE;
-          const w = (hy + 7) / WALL_TILE;
+          const warp = 0.35 * noise2(hz * 0.9, hy * 0.9 + drift, 41);
+          const u = hz / 0.85 + warp;
+          const w = (hy + 7) / 0.85 + warp * 0.7;
           const fu = u - Math.floor(u) - 0.5;
           const fv = w - Math.floor(w) - 0.5;
-          const d = Math.abs(fu) + Math.abs(fv); // 0 at the centre, 0.5 on the diamond's edge
-          // How many tiles fit in one cell here (walls are seen at a grazing angle).
-          const grazing = (dist * dist * pixAngle) / (HALF_W + 0.3) / WALL_TILE;
-          // Each diamond is split into a lit and a shaded half, like quilted tiles,
-          // and outlined: the outline is what reads at this resolution.
-          const lit = fu * fv > 0;
-          if (d < 0.5) v = d < 0.12 ? 0.85 : lit ? 0.42 : 0.2;
-          else v = lit ? 0.14 : 0.04;
-          const px = (dx < 0 ? -HALF_W : HALF_W) - camX; // hit point, relative to the camera
-          const py = hy - camY;
-          const pz = dz * tw;
-          if (grazing < 0.3 && Math.abs(d - 0.5) < 0.06 + grazing * 0.1) {
-            // Diamond edges run at 45 degrees on the wall: (0, s, 1) in the world.
-            lineCh = lineChar(-px / pz, (lit ? -1 : 1) - py / pz);
-          }
-          const aa = clamp01((grazing - 0.2) / 0.6);
-          v += (0.22 - v) * aa;
-          // The seam where the wall meets the floor or ceiling, running along z.
-          if (HALF_H - Math.abs(hy) < dist * pixAngle * 0.9) {
-            seam = true;
-            lineCh = lineChar(-px, -py);
+          const tile = Math.abs(fu) + Math.abs(fv) < 0.42 ? 0.16 : 0;
+          const blotch = 0.7 * noise2(hz * 1.6, hy * 2.2 - drift, 43) + 0.3 * noise2(hz * 5, hy * 6, 45);
+          v = 0.12 + 0.42 * blotch + tile * (0.4 + blotch) - 0.22 * smoothstep(0.6, 0.85, warp * 2.6);
+          const grazing = (dist * dist * pixAngle) / (HALF_W + 0.3);
+          v += (0.24 - v) * clamp01((grazing - 0.3) / 0.8);
+          const ceil = ceilAt(hz);
+          const floor = floorAt(hz, camX + dx * tw);
+          const toEdge = Math.min(ceil - hy, hy - floor);
+          // the seams are broken in places, so the corridor's edges don't rule the picture
+          if (toEdge < dist * pixAngle * 0.9 && noise2(hz * 1.3, side0(dx), 61) > 0.38) {
+            const px = camX + dx * tw - camX;
+            lineCh = lineChar(-px, -(hy - camY));
           }
         } else {
-          // Floor or ceiling: checkerboard.
+          // Floor or ceiling: a checkerboard worn nearly away, warped and smudged.
           wall = false;
           dist = th * len;
           const hx = camX + dx * th;
-          const px = hx / FLOOR_TILE;
-          const pz = (rowZ + dz * th) / FLOOR_TILE;
+          const hz = rowZ + dz * th;
+          const warp = 0.45 * noise2(hx * 0.8, hz * 0.5 + drift, 51);
+          const px = (hx + warp) / FLOOR_TILE;
+          const pz = (hz + warp) / FLOOR_TILE;
           const light = ((Math.floor(px) + Math.floor(pz)) & 1) === 0;
+          const smudge = noise2(hx * 1.4 + 3, hz * 1.1, 53);
+          const ceiling = dy > 0;
+          v = (light ? 0.62 : 0.1) * (0.35 + 0.65 * smudge) + (ceiling ? -0.06 : 0.04);
           const grazing = (dist * dist * pixAngle) / (HALF_H + 0.1) / FLOOR_TILE;
-          v = light ? 1.0 : 0.04;
-          const aa = clamp01((grazing - 0.3) / 0.7);
-          v += (0.32 - v) * aa;
-          if (HALF_W - Math.abs(hx) < dist * pixAngle * 0.5) {
-            seam = true;
-            lineCh = lineChar(camX - hx, -dy * th);
+          v += (0.26 - v) * clamp01((grazing - 0.3) / 0.7);
+          if (Math.abs(hx - centreAt(hz)) > HALF_W * 0.6) {
+            const wl = wallAt(hz, -HALF_H, -1);
+            const wr = wallAt(hz, -HALF_H, 1);
+            if (Math.min(hx - wl, wr - hx) < dist * pixAngle * 0.5 && noise2(hz * 1.3, hx > 0 ? 1 : 0, 61) > 0.38)
+              lineCh = lineChar(camX - hx, -dy * th);
           }
         }
 
@@ -371,24 +558,33 @@
           colors[i] = "bright";
           continue;
         }
-        if (lineCh !== null && (seam ? fog > 0.12 : fog > 0.5)) {
+        if (lineCh !== null && fog > 0.15) {
           chars[i] = lineCh;
-          colors[i] = seam ? (fog > 0.4 ? "bright" : "fg") : fog > 0.7 ? "fg" : "dim";
+          colors[i] = fog > 0.6 ? "bright" : fog > 0.3 ? "fg" : "dim";
           continue;
         }
-        let k = Math.floor(b * RAMP_TOP + 0.5 + dither * 0.9);
+        let k = Math.floor(b * RAMP_TOP + 0.5 + dither * 1.1);
         if (k < 0) k = 0;
         else if (k > RAMP_TOP) k = RAMP_TOP;
         chars[i] = RAMP[k];
-        colors[i] = torn && k > 6 ? "bright" : wall ? (b > 0.7 ? "fg" : "dim") : b > 0.3 ? "fg" : "dim";
+        colors[i] = torn && k > 6 ? "bright" : wall ? (b > 0.6 ? "fg" : "dim") : b > 0.35 ? "fg" : "dim";
       }
     }
 
-    // Post pass: tears, corrupted characters, the odd accent colour.
-    const amount = (0.04 + 0.5 * late + 0.45 * burst) * (1 - 0.6 * flare * flare);
-    glitch(grid, amount, makeRng(step * 40503 + 99991));
+    // Post passes: tears and corrupted characters, the collage's tagged blocks,
+    // static creeping in from the edges, and the tracking wobble.
+    const fade = 1 - 0.6 * flare * flare;
+    const amount = (0.04 + 0.45 * late + 0.45 * burst) * fade;
+    const random = makeRng(step * 40503 + 99991);
+    glitch(grid, amount, random);
+    const tags = Math.floor((burst * 3 + late * 1.5) * fade * random());
+    if (tags > 0) tagBlocks(grid, tags, Math.floor(t * 6));
+    edgeNoise(grid, (0.12 + 0.75 * late + 0.15 * burst) * (1 - flare), t, random);
+    vhs(grid, t, 0.35 + 0.5 * late + 0.8 * burst, random);
   }
 
   Oracle.glitch = glitch;
+  Oracle.vhs = vhs;
+  Oracle.edgeNoise = edgeNoise;
   Oracle.scenes.hallway = { duration: DURATION, frame: hallwayFrame };
 })();

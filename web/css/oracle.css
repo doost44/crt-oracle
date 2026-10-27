@@ -1,4 +1,7 @@
-/* CRT Oracle web: cobalt blue, white characters, terminal text (reference 03). */
+/* CRT Oracle web: a VHS-tinted CRT. Cobalt blue with white characters until a
+ * personality takes over; theme.js then rewrites these colours (amber for Sugar,
+ * washed green for Weary, blue-white for Clinical). The values here are the blue,
+ * for before it runs. */
 :root {
   --bg: #1530e8;
   --fg: #f4f6ff;
@@ -8,6 +11,10 @@
   --red: #ff3b3b;
   --teal: #37d6c5;
   --ink: #0b1a8c;
+  --bleed: #ff3a2e;
+  --glow: rgba(255, 255, 255, 0.55);
+  --bleed-a: rgba(255, 58, 46, 0.5);
+  --ink-a: rgba(11, 26, 140, 0.66);
   --font: Consolas, "Lucida Console", "Courier New", monospace;
   --cell: 16px; /* set by grid.js to the canvas cell height */
 }
@@ -18,15 +25,43 @@ body { font-family: var(--font); }
 
 #screen {
   position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
-  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.55));
+  /* phosphor glow, and the VHS colour bleed: a red ghost a pixel or two to the left */
+  filter: drop-shadow(-2px 0 0 var(--bleed-a)) drop-shadow(0 0 3px var(--glow));
 }
 
 /* Scanlines and a soft vignette, like glass in front of the picture. */
 .crt-overlay {
   position: fixed; inset: 0; pointer-events: none;
   background:
-    repeating-linear-gradient(to bottom, rgba(0, 0, 40, 0.18) 0 1px, transparent 1px 3px),
-    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 50, 0.55) 100%);
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.7) 100%);
+}
+/* The washed-out VHS colour: a faint wash of the bleed colour at the edges. */
+.crt-overlay::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 62%, var(--bleed-a) 140%);
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+
+/* The camcorder's burned-in readout, after the VHS reference: a blinking REC at
+ * the top left, the date stamp at the bottom right (the terminal keeps the left). */
+.vhs-osd {
+  position: fixed; z-index: 2; pointer-events: none;
+  font-family: var(--font); font-weight: bold; letter-spacing: 0.08em;
+  font-size: max(13px, calc(var(--cell) * 1.2)); line-height: 1.2;
+  color: var(--bright); opacity: 0.8;
+  text-shadow: -2px 0 0 var(--bleed-a), 0 0 6px var(--glow);
+  white-space: pre;
+}
+.vhs-osd[hidden] { display: none; }
+.vhs-rec { left: 3.2vw; top: 3vh; }
+.vhs-rec .vhs-dot { color: var(--red); animation: vhs-blink 1.2s steps(1, end) infinite; }
+.vhs-date { right: 3.2vw; bottom: 3vh; text-align: right; }
+@keyframes vhs-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .vhs-rec .vhs-dot { animation: none; }
 }
 
 /* The talking part: bottom of the screen, like the poster's credit lines. */
@@ -35,7 +70,7 @@ body { font-family: var(--font); }
   padding: 0 4ch 2.5vh; overflow: hidden;
   display: flex; flex-direction: column; justify-content: flex-end;
   font-size: max(14px, calc(var(--cell) * 1.15)); line-height: 1.25;
-  text-shadow: 0 0 4px rgba(255, 255, 255, 0.6);
+  text-shadow: 0 0 4px var(--glow), -1px 0 0 var(--bleed-a);
 }
 
 /* Exhibit mode (?kiosk=1): no cursor, nothing to select. */
