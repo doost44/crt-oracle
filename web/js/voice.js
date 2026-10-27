@@ -327,6 +327,7 @@
     const Oracle = (root.Oracle = root.Oracle || {});
     Voice.matchChoice = matchChoice;
     Voice.speakable = speakable;
+    Voice.VOICES = VOICES;
     Oracle.Voice = Voice;
     Oracle.FakeVoice = FakeVoice;
   }

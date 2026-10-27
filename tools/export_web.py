@@ -4,7 +4,8 @@ Run from the repo root after editing anything in content/ or assets/oracle-face/
 
     python tools/export_web.py
 
-It writes web/data/content.js and web/data/face.js. The web page loads them as
+It writes web/data/content.js, web/data/face.js and web/data/oracle_prompt.js
+(the live Oracle's system prompt, for the spoken demo talk.html). The web page loads them as
 plain scripts, so it also works when opened straight from disk. Needs PyYAML,
 plus OpenCV and numpy for the face (pip install -e ".[camera]").
 """
@@ -102,6 +103,14 @@ def build_face() -> dict:
     }
 
 
+def build_prompt() -> dict:
+    """The live conversation's system prompt, built the same way the server builds it."""
+    sys.path.insert(0, str(ROOT))
+    from oracle.conversation.prompts import load_prompts
+
+    return {"system": load_prompts(ROOT / "content" / "oracle").system()}
+
+
 def write_js(path: Path, name: str, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     body = json.dumps(data, ensure_ascii=False, indent=1 if name == "ORACLE_CONTENT" else None)
@@ -112,6 +121,7 @@ def write_js(path: Path, name: str, data: dict) -> None:
 def main(argv: list[str] | None = None) -> int:
     args = argv if argv is not None else sys.argv[1:]
     write_js(OUT_DIR / "content.js", "ORACLE_CONTENT", build_content())
+    write_js(OUT_DIR / "oracle_prompt.js", "ORACLE_PROMPT", build_prompt())
     if "--content-only" not in args:
         write_js(OUT_DIR / "face.js", "ORACLE_FACE", build_face())
     return 0

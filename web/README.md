@@ -201,6 +201,26 @@ with fake faces) and `node web/tests/senses.e2e.js` (a whole visit answered by
 "voice" with a stand-in microphone; set `FACE_VIDEO` to a `.y4m` video of a face
 to run the real face model on it).
 
+## Spoken Oracle (`talk.html`)
+
+A conversation with no typing: you talk, Claude answers as the Oracle, and the
+Oracle says each line out loud. Claude picks the mask every turn (Sugar when you
+open up, Weary when you deflect, Clinical when you push back), and the figure, the
+mask row and the voice all change with it. Each mask gets its own system voice
+where the computer has enough of them, on top of voice.js's pitch and rate.
+
+- The prompt is the live Oracle's own (`content/oracle/`), exported to
+  `web/data/oracle_prompt.js` by `tools/export_web.py`, plus a short note that the
+  conversation is spoken and there is no camera.
+- Claude is reached through the claude.ai artifact runtime, so the page works as a
+  published claude.ai artifact (the viewer allows it once; it uses their account).
+  Opened anywhere else, a small canned Oracle answers so the flow can be tried.
+- Listening is the browser's speech recognition (Chrome, Edge, Safari). Where the
+  microphone isn't allowed, a text box takes the answers instead. The camera is
+  never used, and nothing is recorded or saved.
+
+Test: `node web/tests/talk.e2e.js` (Claude and the voices stubbed, answers typed).
+
 ## Files
 
 ```
