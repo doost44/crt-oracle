@@ -185,6 +185,23 @@ stuck blocks it keeps the last picture shown in memory for one frame (on the
 camera screen, the live picture); nothing is saved or sent. Test:
 `LOOK=glitch node web/tests/talk_readout.e2e.js face.jpg`.
 
+### Drawing look (`talk-plan.html`, `readout-plan.html`)
+
+The glitch look's failing machine on the clean look's white paper and blue ink,
+with the menu centred. Behind everything, technical drawings in coloured inks
+(dash-dot grids, double-walled rooms, fat translucent pipe runs, labels) are
+stacked floor on floor like an exploded axonometric and turn slowly. As it decays
+the floors pull apart and slip out of register, more of them arrive, red frames
+rise off the top, and handwritten notes in clouds pile up on the glass. The
+decay itself works the other way round on white: ink trails instead of ghosts,
+ink bleed instead of bloom, and the white tinting blue. Things die into the
+drawings' inks. The camera screen prints the picture in blue ink over a fainter
+copy of the drawings.
+
+The drawings are made up when the page loads (`js/plans.js`); `css/plan.css`
+does the paper. `?decay=` and Alt+D work as in the glitch look. Test:
+`LOOK=plan node web/tests/talk_readout.e2e.js face.jpg`.
+
 ## Voice answers and physical actions
 
 Switched on from the address bar, so the plain visit stays exactly as it was:
@@ -284,6 +301,7 @@ web/
   js/sound.js       hum, clicks and printer, synthesised with Web Audio
   js/theme.js       the palette per personality, and the flickery switch between them
   js/signal.js      the glitch look's failing screen: haze, smears, drips, stuck blocks, roll
+  js/plans.js       the drawing look's turning stack of technical drawings
   js/grid.js        the character screen: one canvas, a grid of cells
   js/hallway.js     the ASCII hallway drift, and the VHS wobble and edge static
   js/face.js        the painted sun face, lit from the height and sculpt maps

@@ -33,8 +33,11 @@
   };
   // The glitch look (readout-glitch.html): white on black for everyone, on the screen
   // of a failing machine (signal.js) that falls apart with the Oracle's.
-  const SIGNAL = window.ORACLE_LOOK === "glitch" && Oracle.signal;
+  const SIGNAL = (window.ORACLE_LOOK === "glitch" || window.ORACLE_LOOK === "plan") && Oracle.signal;
   if (SIGNAL) for (const id of Object.keys(TINTS)) TINTS[id] = { fg: [236, 238, 246], bg: "#000000" };
+  // The drawing look (readout-plan.html): blue ink on white paper, over the drawings (plans.js).
+  const PAPER = SIGNAL && SIGNAL.light;
+  if (PAPER) for (const id of Object.keys(TINTS)) TINTS[id] = { fg: [31, 43, 214], bg: "#ffffff" };
   const C = {
     head: "#ff3030",
     face: "#4a6bff",
@@ -125,7 +128,7 @@
         const i = (y * PIC_W + x) * 4;
         const j = (y * PIC_W + sx) * 4;
         let lum = (src[j] * 0.3 + src[j + 1] * 0.59 + src[j + 2] * 0.11) / 255;
-        // Washed out, blacks lifted; the glitch look crushes them instead, like the poster's black.
+        // Washed out, blacks lifted; the glitch look crushes them instead.
         lum = SIGNAL ? Math.pow(lum, 1.25) * 1.1 : 0.12 + Math.pow(lum, 0.85) * 0.88;
         const n = (Math.random() - 0.5) * (inBand ? 0.5 : 0.16);
         const v = Math.max(0, lum + n);
@@ -133,6 +136,15 @@
         const k = (y * PIC_W + Math.min(PIC_W - 1, sx + 4)) * 4;
         const edgeX = Math.max(0, 1 - Math.min(x, PIC_W - x) / (PIC_W * 0.08));
         const bleed = SIGNAL ? 0 : Math.max(edgeY, edgeX * 0.6) ** 1.5 * (src[k] / 255) * 0.8;
+        if (PAPER) {
+          // Printed in blue ink: the lights are the paper, the darks are the ink.
+          const p = Math.min(1, v);
+          d[i] = 255 * p + tr * (1 - p);
+          d[i + 1] = 255 * p + tg * (1 - p);
+          d[i + 2] = 255 * p + tb * (1 - p);
+          d[i + 3] = 255;
+          continue;
+        }
         d[i] = tr * v + 230 * bleed;
         d[i + 1] = tg * v * (1 - bleed * 0.6);
         d[i + 2] = tb * v * (1 - bleed * 0.7);
@@ -751,6 +763,7 @@
     document.body.style.background = tint.bg;
     ctx.fillStyle = tint.bg;
     ctx.fillRect(0, 0, W, H);
+    if (PAPER && Oracle.plans) Oracle.plans.draw(ctx, now, SIGNAL.decay, { alpha: 0.45 });
     try {
       const f = presence.current;
       track(f, now);

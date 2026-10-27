@@ -90,11 +90,13 @@ something: a test, a punishment, a reward. Otherwise set "command" to "none".`;
         look: null, // no camera: the figure looks around the room on its own
       });
       if (Oracle.vhs && Oracle.theme.switching) Oracle.vhs(grid, t, 0.4, Oracle.rng(Math.floor(t * 30) + 1));
-    } else if (Oracle.signal) {
+    } else if (Oracle.signal && !Oracle.signal.light) {
       memoryDump(now / 1000);
     }
     grid.render();
-    // The glitch look (talk-glitch.html): the screen of a failing machine (signal.js).
+    // The drawing look (talk-plan.html): the turning stack of drawings behind it all.
+    if (Oracle.plans && Oracle.signal) Oracle.plans.draw(grid.ctx, now, Oracle.signal.decay);
+    // The glitch and drawing looks: the screen of a failing machine (signal.js).
     if (Oracle.signal) Oracle.signal.post(grid.canvas, now);
     requestAnimationFrame(draw);
   }

@@ -20,6 +20,11 @@
  * it wavers sideways and its colours pull apart as decay rises. While a jolt is on,
  * <html> has the class "signal-burst".
  *
+ * The drawing look (talk-plan.html, readout-plan.html: window.ORACLE_LOOK = "plan")
+ * is the same machine on white paper with blue ink: the ghosts become ink trails,
+ * the bloom an ink bleed, the haze a blue tint creeping into the white, and things
+ * die into the drawings' coloured inks (plans.js draws the drawings).
+ *
  * ?decay=0.8 starts that broken (to preview the end); Alt+D steps it up by a fifth.
  *
  * The only thing kept between frames is the last picture shown, in memory, for the
@@ -39,6 +44,19 @@
   };
   // The haze: what the blacks lift towards.
   const HAZE = { neutral: "#1a2a6a", sugar: "#5a1a2a", weary: "#1a3a2a", clinical: "#0a2a5a" };
+
+  // The drawing look: white paper, so everything works the other way round.
+  const LIGHT = window.ORACLE_LOOK === "plan";
+  if (LIGHT) {
+    Object.assign(PALETTES, {
+      neutral: ["#ff2fb4", "#1fc84a", "#f2d400", "#00b4e6", "#1f2bd6", "#ff9ad5"],
+      sugar: ["#ff2fb4", "#f2d400", "#ff9a3c", "#ff9ad5", "#1f2bd6", "#ff3a2a"],
+      weary: ["#1fc84a", "#b8f06a", "#8a3cff", "#1f2bd6", "#f2d400", "#ff9ad5"],
+      clinical: ["#00b4e6", "#1f2bd6", "#5bc8ff", "#1fc84a", "#ff2fb4", "#ffffff"],
+    });
+    // What the white goes towards: blue, a little different per mask.
+    Object.assign(HAZE, { neutral: "#c9d4ff", sugar: "#ffd0ec", weary: "#d4f0c8", clinical: "#c4ecff" });
+  }
 
   const reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const CREEP_MS = 180000; // left alone, it gets about half broken in three minutes
@@ -210,6 +228,7 @@
   }
 
   // Snow: a tile of coloured noise, stretched sideways so it streaks like a bad tape.
+  // On white paper it is the negative: mostly white, with specks of ink.
   const SNOW = (() => {
     const c = document.createElement("canvas");
     c.width = 256;
@@ -222,6 +241,7 @@
       img.data[i] = hot ? 120 + Math.random() * 135 : v * 90;
       img.data[i + 1] = hot ? Math.random() * 255 : v * 70;
       img.data[i + 2] = hot ? 140 + Math.random() * 115 : v * 120;
+      if (LIGHT) for (let k = 0; k < 3; k++) img.data[i + k] = 255 - img.data[i + k] * 0.8;
       img.data[i + 3] = 255;
     }
     g.putImageData(img, 0, 0);
@@ -315,8 +335,9 @@
       }
     }
 
-    // 2. Ghosts: the last picture shown, drifting up and fading, so movement smears.
-    ctx.globalCompositeOperation = "screen";
+    // 2. Ghosts: the last picture shown, drifting up and fading, so movement smears
+    //    (on white paper, ink trails).
+    ctx.globalCompositeOperation = LIGHT ? "multiply" : "screen";
     ctx.globalAlpha = Math.min(0.7, 0.12 + d * 0.5 + lv * 0.15);
     ctx.drawImage(b.prev, (R() - 0.5) * 2 * unit * (1 + d * 3), -(0.6 + d * 2.5) * unit);
     ctx.globalAlpha = 1;
@@ -332,8 +353,8 @@
     b.prevCtx.drawImage(canvas, 0, 0);
 
     // 4. Snow, streaked sideways, thicker as it goes and on a jolt.
-    ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = Math.min(0.4, 0.03 + d * 0.14 + lv * 0.22);
+    ctx.globalCompositeOperation = LIGHT ? "multiply" : "screen";
+    ctx.globalAlpha = Math.min(0.4, 0.03 + d * 0.14 + lv * 0.22) * (LIGHT ? 0.8 : 1);
     const sx = Math.floor(R() * 256);
     const sy = Math.floor(R() * 256);
     const stretch = 3 + d * 8;
@@ -342,15 +363,16 @@
     }
 
     // 5. The haze: the picture bloomed (drawn tiny and back up) and the blacks lifted.
+    //    On white paper: the ink bleeds, and the white tints towards blue.
     b.hazeCtx.globalCompositeOperation = "copy";
     b.hazeCtx.drawImage(canvas, 0, 0, b.haze.width, b.haze.height);
     b.haze2Ctx.globalCompositeOperation = "copy";
     b.haze2Ctx.drawImage(b.haze, 0, 0, b.haze2.width, b.haze2.height);
-    ctx.globalAlpha = 0.3 + d * 0.25;
+    ctx.globalAlpha = (0.3 + d * 0.25) * (LIGHT ? 0.45 : 1);
     ctx.drawImage(b.haze, 0, 0, w, h);
-    ctx.globalAlpha = 0.25 + d * 0.3;
+    ctx.globalAlpha = (0.25 + d * 0.3) * (LIGHT ? 0.35 : 1);
     ctx.drawImage(b.haze2, 0, 0, w, h);
-    ctx.globalAlpha = 0.05 + d * 0.12;
+    ctx.globalAlpha = LIGHT ? 0.18 + d * 0.5 : 0.05 + d * 0.12;
     ctx.fillStyle = pal.haze;
     ctx.fillRect(0, 0, w, h);
 
@@ -374,14 +396,14 @@
       ctx.drawImage(b.frame, 0, roll - h);
       ctx.globalCompositeOperation = "source-over";
       ctx.drawImage(b.frame, 0, roll);
-      ctx.fillStyle = "#000";
+      ctx.fillStyle = LIGHT ? "#0b159e" : "#000";
       ctx.fillRect(0, roll - 18 * unit, w, 36 * unit);
     }
 
     // A few bright dropout lines on a jolt.
     ctx.globalCompositeOperation = "source-over";
     if (lv > 0.2) {
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = LIGHT ? pal.colours[0] : "#ffffff";
       for (let i = 0; i < 1 + lv * 5; i++) {
         ctx.globalAlpha = 0.25 + rr() * 0.5;
         ctx.fillRect(rr() * w * 0.6, rr() * h, w * (0.1 + rr() * 0.5), Math.max(1, unit * 1.5));
@@ -405,7 +427,8 @@
     svg.setAttribute("height", "0");
     svg.style.position = "absolute";
     // Shift sideways by noise (green held at the middle, so nothing moves up or down),
-    // draw red, green and blue apart, and add a soft glow.
+    // draw red, green and blue apart, and add a soft glow (not on white paper, where
+    // it would only wash the ink out).
     svg.innerHTML = `
       <filter id="signal-warp" x="-4%" y="-10%" width="108%" height="120%" color-interpolation-filters="sRGB">
         <feTurbulence id="signal-noise" type="fractalNoise" baseFrequency="0.0008 0.22" numOctaves="1" seed="3" result="noise"/>
@@ -419,7 +442,7 @@
         <feComposite in="r2" in2="g" operator="arithmetic" k2="1" k3="1" result="rg"/>
         <feComposite in="rg" in2="b2" operator="arithmetic" k2="1" k3="1" result="rgb"/>
         <feGaussianBlur id="signal-glow" in="rgb" stdDeviation="2" result="glow"/>
-        <feComposite in="rgb" in2="glow" operator="arithmetic" k2="1" k3="0.8"/>
+        <feComposite in="rgb" in2="glow" operator="arithmetic" k2="1" k3="${LIGHT ? 0 : 0.8}"/>
       </filter>`;
     document.body.appendChild(svg);
   }
@@ -452,6 +475,7 @@
   });
 
   Oracle.signal = {
+    light: LIGHT,
     post,
     kick,
     wear,

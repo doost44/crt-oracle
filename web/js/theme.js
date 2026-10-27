@@ -104,6 +104,25 @@
     for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, black, { orange: accent[id] });
   }
 
+  // The drawing look (talk-plan.html sets window.ORACLE_LOOK = "plan"): the clean
+  // look's white paper and blue ink, with each mask's accent in one of the drawings'
+  // inks (plans.js draws them).
+  if (window.ORACLE_LOOK === "plan") {
+    const paper = {
+      bg: "#ffffff",
+      fg: "#1f2bd6",
+      dim: "#7d86e6",
+      bright: "#0b159e",
+      orange: "#1f2bd6",
+      red: "#ff2a2a",
+      teal: "#00b4e6",
+      ink: "#ffffff",
+      bleed: "#ff2fb4",
+    };
+    const accent = { neutral: "#1f2bd6", sugar: "#ff2fb4", weary: "#1fa83e", clinical: "#00a2e0" };
+    for (const id of Object.keys(THEMES)) THEMES[id] = Object.assign({}, paper, { orange: accent[id] });
+  }
+
   const KEYS = Object.keys(THEMES.neutral);
   const SWITCH_MS = 900;
 
