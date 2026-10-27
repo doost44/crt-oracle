@@ -37,18 +37,18 @@
   const MASKS = {
     sugar: {
       speech: { variant: "f5", pitch: 78, speed: 158, amplitude: 120 },
-      reverb: { seconds: 1.5, decay: 3, wet: 0.18, tone: 6500 },
-      echo: { time: 0.26, feedback: 0.14, level: 0.1, tone: 4200 },
+      reverb: { seconds: 1.0, decay: 3.5, wet: 0.07, tone: 6500 },
+      echo: { time: 0.24, feedback: 0.08, level: 0.04, tone: 4200 },
     },
     weary: {
       speech: { variant: "m3", pitch: 18, speed: 112, amplitude: 120, wordgap: 2 },
-      reverb: { seconds: 2.6, decay: 3, wet: 0.26, tone: 1600 },
-      echo: { time: 0.42, feedback: 0.22, level: 0.14, tone: 1400 },
+      reverb: { seconds: 1.6, decay: 3.5, wet: 0.1, tone: 1600 },
+      echo: { time: 0.38, feedback: 0.1, level: 0.05, tone: 1400 },
     },
     clinical: {
       speech: { variant: "klatt3", pitch: 46, speed: 165, amplitude: 120 },
-      reverb: { seconds: 0.6, decay: 5, wet: 0.16, tone: 9000 },
-      echo: { time: 0.08, feedback: 0.3, level: 0.12, tone: 7000 },
+      reverb: { seconds: 0.45, decay: 5, wet: 0.06, tone: 9000 },
+      echo: { time: 0.07, feedback: 0.15, level: 0.04, tone: 7000 },
     },
   };
 
