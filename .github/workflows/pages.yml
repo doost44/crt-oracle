@@ -56,6 +56,9 @@ jobs:
       - name: Story engine tests (Node)
         run: node web/tests/story.test.js
 
+      - name: ASCII 3D tests (Node)
+        run: node web/tests/ascii3d.test.js
+
   deploy:
     needs: test
     runs-on: ubuntu-latest
