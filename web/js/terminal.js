@@ -3,7 +3,8 @@
  *
  *   const t = new Oracle.Terminal(el, { onTyping, onChar });
  *   await t.say(text); await t.art(text); t.menu(labels);
- *   await t.readLine(prompt); await t.choose(labels); await t.pressEnter(count, text);
+ *   await t.readLine(prompt, { max }); await t.choose(labels); await t.pressEnter(count, text);
+ *   const stop = t.thinking(); ...; stop();
  *   t.clear(); t.destroy();
  *
  *   const { receipt, session } = await Oracle.runStory(content, terminal, { random, onPersonality });
@@ -263,8 +264,28 @@
       return index;
     }
 
-    /* A typed line with a ">" prompt and a blinking block cursor. Resolves on Enter. */
-    async readLine(prompt) {
+    /* While the Oracle "thinks": a line of slowly growing dots. Returns a function that removes it. */
+    thinking() {
+      const line = make("div", "term-line term-oracle term-thinking");
+      const span = make("span", "term-text", ".");
+      line.appendChild(span);
+      this._add(line);
+      let n = 1;
+      const timer = setInterval(() => {
+        n = (n % 3) + 1;
+        span.textContent = ".".repeat(n);
+      }, 450);
+      return () => {
+        clearInterval(timer);
+        line.remove();
+        this.fit();
+      };
+    }
+
+    /* A typed line with a ">" prompt and a blinking block cursor. Resolves on Enter.
+     * opts.max: the longest answer allowed (default MAX_INPUT). */
+    async readLine(prompt, opts) {
+      const max = (opts && opts.max) || MAX_INPUT;
       prompt = prompt == null ? ">" : String(prompt).replace(/\s+$/, "") || ">";
       const line = make("div", "term-line term-you term-input");
       const field = make("label", "term-field");
@@ -274,12 +295,12 @@
       const after = make("span", "term-typed");
       const input = make("input", "term-hidden-input");
       input.type = "text";
-      input.maxLength = MAX_INPUT;
+      input.maxLength = max;
       input.autocomplete = "off";
       input.autocapitalize = "off";
       input.spellcheck = false;
       input.setAttribute("aria-label", "Your answer");
-      input.value = this.typeahead.join("").slice(0, MAX_INPUT);
+      input.value = this.typeahead.join("").slice(0, max);
       this.typeahead = [];
       field.append(before, cursor, after, input);
       line.appendChild(field);
