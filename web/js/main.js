@@ -130,7 +130,8 @@
         });
         // the old face tears away as the new one comes in
         if (pt < SWITCH_GLITCH_SECONDS) Oracle.glitch(grid, 0.5 * (1 - pt / SWITCH_GLITCH_SECONDS), Oracle.rng(Math.floor(pt * 30) + 7));
-      } else {
+      } else if (!CLEAN) {
+        // (The clean look leaves the screen empty until a personality is picked.)
         Oracle.scenes.face.frame(grid, t, {
           region: faceRegion(),
           reveal: Math.min(1, t / REVEAL_SECONDS),
