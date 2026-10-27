@@ -201,6 +201,60 @@ with fake faces) and `node web/tests/senses.e2e.js` (a whole visit answered by
 "voice" with a stand-in microphone; set `FACE_VIDEO` to a `.y4m` video of a face
 to run the real face model on it).
 
+## Spoken Oracle (`talk.html`)
+
+A conversation with no typing: you talk, Claude answers as the Oracle, and the
+Oracle says each line out loud. Claude picks the mask every turn (Sugar when you
+open up, Weary when you deflect, Clinical when you push back), and the figure, the
+mask row and the voice all change with it. Each mask gets its own system voice
+where the computer has enough of them, on top of voice.js's pitch and rate.
+
+- The prompt is the live Oracle's own (`content/oracle/`), exported to
+  `web/data/oracle_prompt.js` by `tools/export_web.py`, plus a short note that the
+  conversation is spoken and there is no camera.
+- Claude is reached through the claude.ai artifact runtime, so the page works as a
+  published claude.ai artifact (the viewer allows it once; it uses their account).
+  Opened anywhere else, a small canned Oracle answers so the flow can be tried.
+- Listening is the browser's speech recognition (Chrome, Edge, Safari). Where the
+  microphone isn't allowed, a text box takes the answers instead. The camera is
+  never used, and nothing is recorded or saved.
+
+**Room voices.** Each mask speaks in its own faint space: a touch of reverb
+(bright for Sugar, dull for Weary, small and hard for Clinical). An echo per mask
+is built in but switched off. The browser's own
+voices can't be put through effects, so these come from meSpeak (eSpeak in the
+browser, GPL; `js/roomvoice.js`) and go through Web Audio: a convolution reverb
+made from decaying noise, and an optional feedback delay. They sound more synthetic than the
+system voices, which suits a machine in a room. The masks are one mind, so the
+voices glitch into each other: the other masks say the same words underneath and
+tear through in short slices, a fragment sometimes stutters, and right after a
+switch the last mask bleeds through for a moment (`GLITCH` in `js/roomvoice.js`). Fetch them once with
+`python tools/fetch_voices.py` (into `web/vendor/mespeak/`, ignored by git);
+without them, or with the **Echo** button off (or `?voices=plain`), the page uses
+the browser's voices with no effects. The settings per mask are at the top of
+`js/roomvoice.js`.
+
+**Second monitor.** The readout screen (`readout.html`, below) is the spoken
+Oracle's eye. Open it with **Second screen** on the talk page (or in another
+window of the same browser) and drag it to the other monitor. Once its camera is
+live:
+
+- it shows who is speaking, what the visitor just said, and Claude's private note
+  on each turn ("Weary: one-word answers, going through the motions") in its
+  ANALYSIS log;
+- the Oracle can give physical commands. Claude may set a `command` (look left,
+  close your eyes, hold still, smile...) at most once every three turns and says
+  it out loud; the instruction appears over the picture with a progress bar, the
+  face landmarks check it (`js/actions.js`), and COMPLIED or FAILED goes back to
+  the Oracle, which reacts before the conversation carries on.
+
+Without the readout (or without a camera) the Oracle gives no commands. Only words
+and measurements pass between the two windows, never pictures.
+
+Tests: `node web/tests/talk.e2e.js` (Claude and the voices stubbed, answers typed)
+and `node web/tests/talk_readout.e2e.js face.jpg` (both screens, a fake camera
+showing the photo, a scripted "hold still" command checked by the tracker).
+
 ## Files
 
 ```

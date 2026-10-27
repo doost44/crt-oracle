@@ -24,7 +24,25 @@
 
   const bus = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(CHANNEL) : null;
   const busListeners = new Set();
-  if (bus) bus.onmessage = (e) => busListeners.forEach((fn) => fn(e.data));
+  // Messages also go straight to the window that opened this one, for browsers
+  // that keep the two pages apart (a page inside claude.ai and its pop-up). Each
+  // carries an id, so one that arrives both ways is heard once.
+  const peers = new Set();
+  try {
+    if (window.opener) peers.add(window.opener);
+  } catch (e) {
+    /* no opener */
+  }
+  const heard = [];
+  function deliver(msg) {
+    if (!msg || (msg.n && heard.includes(msg.n))) return;
+    if (msg.n) heard.push(msg.n) > 64 && heard.shift();
+    busListeners.forEach((fn) => fn(msg));
+  }
+  if (bus) bus.onmessage = (e) => deliver(e.data);
+  window.addEventListener("message", (e) => {
+    if (e.data && e.data[CHANNEL] && peers.has(e.source)) deliver(e.data[CHANNEL]);
+  });
 
   const presence = {
     status: "off", // off | starting | live | error
@@ -39,7 +57,15 @@
     lastRemote: 0,
 
     post(msg) {
-      if (bus) bus.postMessage(Object.assign({ from: presence.role }, msg));
+      const m = Object.assign({ from: presence.role, n: Math.random().toString(36).slice(2) }, msg);
+      if (bus) bus.postMessage(m);
+      peers.forEach((w) => {
+        try {
+          w.postMessage({ [CHANNEL]: m }, "*");
+        } catch (e) {
+          peers.delete(w);
+        }
+      });
     },
     listen(fn) {
       busListeners.add(fn);
@@ -56,6 +82,7 @@
       return () => resultListeners.delete(fn);
     },
     start,
+    retry,
     switchCamera,
   };
 
@@ -122,8 +149,20 @@
       presence.status = "off";
       return presence;
     }
-    presence.status = "starting";
     presence.listen(onBus);
+    return wake();
+  }
+
+  /* Ask for the camera again after it was refused or failed (a click on the
+   * readout), so the browser shows its permission prompt from a user gesture. */
+  function retry() {
+    return presence.status === "error" ? wake() : Promise.resolve(presence);
+  }
+
+  let ticking = false;
+  async function wake() {
+    presence.status = "starting";
+    presence.error = "";
     try {
       await openCamera();
       presence.status = "live";
@@ -134,13 +173,18 @@
       console.warn("Oracle camera:", presence.error);
       return presence;
     }
-    try {
-      landmarker = (await Oracle.vision.load()).landmarker;
-    } catch (err) {
-      presence.error = "face tracker did not load: " + ((err && err.message) || err);
-      console.warn("Oracle:", presence.error);
+    if (!landmarker) {
+      try {
+        landmarker = (await Oracle.vision.load()).landmarker;
+      } catch (err) {
+        presence.error = "face tracker did not load: " + ((err && err.message) || err);
+        console.warn("Oracle:", presence.error);
+      }
     }
-    requestAnimationFrame(tick);
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(tick);
+    }
     return presence;
   }
 

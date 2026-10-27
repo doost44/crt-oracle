@@ -4,6 +4,11 @@
  * triangulated mesh, torn-off numbered blocks, ranked "match" slots that never
  * match, and analysis labels that change with the face's expression.
  *
+ * Linked to the spoken Oracle (talk.html), it also shows what the visitor said
+ * and the Oracle's private notes on them, and it is where the Oracle's physical
+ * commands land: the instruction appears over the picture, the face landmarks
+ * check it (actions.js), and the result goes back to the Oracle to react to.
+ *
  * All of it is theatre. Nothing identifies anyone, and no picture is kept: each
  * frame is drawn, measured and thrown away.
  *
@@ -42,8 +47,13 @@
   const STAGES = ["FACE DETECTION", "FEATURE SEARCH", "FINAL FEATURE POSNS", "TRIANGULATION", "WARPING", "FEATURE EXTRACTION"];
   const STAGE_AT = [0, 0.7, 1.5, 2.3, 3.2]; // seconds after a face appears
 
+  const Actions = Oracle.Actions;
+  const COMMAND_SHOW_MS = 3500; // the verdict stays over the picture this long
+
   const state = {
     oracle: { scene: "", personality: null, talking: false },
+    heard: "", // the visitor's last words, from the spoken Oracle
+    command: null, // { id, action, label, check, status, progress, start, result, ended }
     linked: 0, // last message from the Oracle's screen
     mirror: readFlag("oracle.mirror"),
     help: true,
@@ -512,6 +522,7 @@
     const who = linked && state.oracle.personality ? state.oracle.personality.toUpperCase() : "------";
     const doing = !linked ? "OFFLINE" : state.oracle.talking ? "SPEAKING" : (state.oracle.scene || "").toUpperCase();
     line(`ORACLE    ${who} / ${doing}`);
+    if (state.heard) line(`HEARD     "${state.heard.toUpperCase()}"`, linked ? fg : dim);
     rule();
     line("PIPELINE", dim);
     for (let i = 0; i < STAGES.length; i++) {
@@ -539,13 +550,111 @@
     }
     rule();
     line("ANALYSIS", dim);
+    // The newest entries that fit; the Oracle's own notes wrap onto more lines.
     const room = Math.max(0, Math.floor((p.y + p.h - y) / lh) - 1);
-    const shown = state.log.slice(-room);
-    shown.forEach((entry, i) => line(`${entry.time}  ${entry.label}`, i === shown.length - 1 ? fg : dim));
+    const rows = [];
+    for (let i = state.log.length - 1; i >= 0 && rows.length < room; i--) {
+      const entry = state.log[i];
+      const wrapped = wrap(entry.label, cols - 10);
+      const color = i === state.log.length - 1 ? fg : entry.oracle ? rgb(tint.fg, 0.8) : dim;
+      for (let k = wrapped.length - 1; k >= 0 && rows.length < room; k--) rows.unshift([`${k ? "        " : entry.time}  ${wrapped[k]}`, color]);
+    }
+    rows.forEach(([str, color]) => line(str, color));
     if (state.help && y + lh <= p.y + p.h) {
       y = p.y + p.h - lh;
       line("C CAM  F FULL  M MIRROR  H HIDE", dim);
     }
+  }
+
+  function wrap(str, width) {
+    const out = [];
+    let cur = "";
+    for (const word of String(str).split(/\s+/)) {
+      if (cur && (cur + " " + word).length > width) {
+        out.push(cur);
+        cur = word;
+      } else cur = cur ? cur + " " + word : word;
+    }
+    if (cur) out.push(cur);
+    return out.length ? out : [""];
+  }
+
+  // --- the Oracle's commands, over the picture --------------------------------------
+
+  function startCommand(msg) {
+    if (!Actions || !Actions.ACTIONS[msg.action]) {
+      presence.post({ type: "command-result", id: msg.id, action: msg.action, status: "lost" });
+      return;
+    }
+    state.command = {
+      id: msg.id,
+      action: msg.action,
+      label: Actions.ACTIONS[msg.action].label,
+      check: new Actions.Check(msg.action),
+      status: "settling",
+      progress: 0,
+      start: performance.now(),
+      result: null,
+      ended: 0,
+    };
+    logEntry(`INSTRUCTION: ${state.command.label.toUpperCase()}`, true);
+  }
+
+  // Every tracker result while a command is open: is the visitor doing it?
+  presence.onResult((result, now) => {
+    const c = state.command;
+    if (!c || c.result) return;
+    const r = c.check.update(Actions.measure(result), now);
+    c.status = r.status;
+    c.progress = r.progress;
+    c.hint = r.hint;
+    if (r.status === "done" || r.status === "timeout") {
+      c.result = r.status;
+      c.ended = performance.now();
+      presence.post({ type: "command-result", id: c.id, action: c.action, status: r.status, hint: r.hint || null });
+      logEntry(r.status === "done" ? `COMPLIED: ${c.label.toUpperCase()}` : `NON-COMPLIANCE: ${c.label.toUpperCase()}`, true);
+    }
+  });
+
+  function drawCommand(t, tint) {
+    const c = state.command;
+    if (!c) return;
+    if (c.result && performance.now() - c.ended > COMMAND_SHOW_MS) {
+      state.command = null;
+      return;
+    }
+    const v = L.video;
+    const big = Math.round(v.h / 11);
+    const small = Math.round(big * 0.42);
+    const cx = v.x + v.w / 2;
+    const top = v.y + v.h * 0.52; // below the face, above the date stamp
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.fillRect(v.x + v.w * 0.08, top - small * 0.6, v.w * 0.84, big + small * 4.2);
+    if (!c.result) {
+      text(Math.floor(t * 2) % 2 ? "INSTRUCTION" : "INSTRUCTION ▮", cx, top, C.tag, small, "center");
+      stamp(c.label.toUpperCase(), cx, top + small * 1.4, big, "center");
+      const w = v.w * 0.6;
+      const x = cx - w / 2;
+      const y = top + small * 1.6 + big * 1.15;
+      ctx.strokeStyle = C.tag;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x, y, w, small * 0.9);
+      ctx.fillStyle = C.tag;
+      ctx.fillRect(x + 2, y + 2, Math.max(0, (w - 4) * c.progress), small * 0.9 - 4);
+      const left = Math.max(0, (c.check.timeoutMs - (performance.now() - c.start)) / 1000);
+      const status = c.hint === "no_face" ? "SUBJECT NOT IN FRAME" : c.status === "settling" ? "CALIBRATING" : c.status === "holding" ? "HOLD" : "WAITING FOR SUBJECT";
+      text(`${status}  ${left.toFixed(1)}S`, cx, y + small * 1.3, rgb(tint.fg), small, "center");
+    } else {
+      const ok = c.result === "done";
+      text(ok ? "COMPLIANCE CONFIRMED" : "NON-COMPLIANCE LOGGED", cx, top, ok ? C.dot : C.head, small, "center");
+      stamp(ok ? "COMPLIED" : "FAILED", cx, top + small * 1.4, big, "center");
+    }
+  }
+
+  function logEntry(label, oracle) {
+    state.log.push({ mood: oracle ? "oracle" : state.mood, label, time: clock(new Date()), oracle: !!oracle });
+    if (state.log.length > 40) state.log.shift();
+    state.lastLog = performance.now();
   }
 
   // --- the "match" strip: ranked slots that never find anyone -------------------
@@ -575,11 +684,18 @@
     }
   }
 
+  /* No camera: static where the picture goes. The panel still runs, so the
+   * Oracle's notes and what the visitor said show without a camera too. */
   function drawNoSignal(tint) {
-    drawNoise({ x: 0, y: 0, w: W, h: H }, tint, 0.35);
-    text("NO SIGNAL", W / 2, H / 2 - L.fs * 3, C.head, L.fs * 2.4, "center");
-    text(presence.status === "starting" ? "WAITING FOR THE CAMERA" : (presence.error || "CAMERA OFF").toUpperCase(), W / 2, H / 2, rgb(tint.fg), L.fs, "center");
-    text("C: TRY THE NEXT CAMERA   ?camera=NAME IN THE ADDRESS PICKS ONE", W / 2, H / 2 + L.fs * 2, rgb(tint.fg, 0.6), L.fs * 0.85, "center");
+    const v = L.video;
+    drawNoise(v, tint, 0.35);
+    const cx = v.x + v.w / 2;
+    const cy = v.y + v.h / 2;
+    text("NO SIGNAL", cx, cy - L.fs * 3, C.head, L.fs * 2.4, "center");
+    text(presence.status === "starting" ? "WAITING FOR THE CAMERA" : (presence.error || "CAMERA OFF").toUpperCase().slice(0, 60), cx, cy, rgb(tint.fg), L.fs, "center");
+    const hint = presence.status === "error" ? "CLICK HERE TO TURN ON THE CAMERA" : "C: TRY THE NEXT CAMERA   ?camera=NAME PICKS ONE";
+    text(hint, cx, cy + L.fs * 2, rgb(tint.fg, presence.status === "error" ? 1 : 0.6), L.fs * (presence.status === "error" ? 1.1 : 0.85), "center");
+    box(v, rgb(tint.fg, 0.5), 1);
   }
 
   // --- bookkeeping per frame ---------------------------------------------------------
@@ -633,11 +749,14 @@
       track(f, now);
       if (presence.status !== "live") {
         drawNoSignal(tint);
+        drawPanel(t, null, -1, tint);
+        drawStrip(t, null, tint);
         return;
       }
       updateTiles(f, t, dt);
       let stage = -1;
       stage = drawVideo(t, f, stage, tint);
+      drawCommand(t, tint);
       drawPanel(t, f, stage, tint);
       drawStrip(t, f, tint);
     } catch (err) {
@@ -651,7 +770,17 @@
     if (!msg || msg.from !== "main") return;
     state.linked = performance.now();
     if (msg.type === "oracle") state.oracle = { scene: msg.scene, personality: msg.personality, talking: msg.talking };
+    if (msg.type === "said" && msg.who === "visitor") state.heard = String(msg.text || "").slice(0, 140);
+    if (msg.type === "note" && msg.text) logEntry(`${(msg.personality || "oracle").toUpperCase()}: ${String(msg.text).toUpperCase()}`, true);
+    if (msg.type === "command") startCommand(msg);
+    if (msg.type === "reset") {
+      state.heard = "";
+      state.command = null;
+    }
   });
+
+  // Tell the spoken Oracle whether the eye is open, so it only gives commands it can check.
+  setInterval(() => presence.post({ type: "eye", camera: presence.status, face: !!presence.current }), 1000);
 
   document.addEventListener("keydown", (e) => {
     const k = e.key.toLowerCase();
@@ -670,9 +799,14 @@
       state.help = !state.help;
     }
   });
+  // A click asks for the camera again: Chrome shows its permission prompt for a click.
+  canvas.addEventListener("click", () => {
+    if (presence.status === "error") presence.retry();
+  });
   canvas.addEventListener("dblclick", () => document.documentElement.requestFullscreen().catch(() => {}));
 
   Oracle.readout = { state };
+  presence.role = "readout";
   presence.start({ role: "readout" }).then(() => presence.post({ type: "hello" }));
   presence.post({ type: "hello" });
   requestAnimationFrame(frame);
