@@ -130,7 +130,7 @@ def test_interruption_while_visitor_types_keeps_their_answer():
 
 def test_full_run_on_crt_display(make_session, root, tmp_path):
     display, screen = make()
-    screen.events = keys("3") + keys("a tree") + keys("a fire") + keys("") * 3
+    screen.events = keys("3") + keys("a tree") + keys("a fire") + keys("a quiet week") + keys("") * 3
     session = make_session()
     clock = FakeClock(step=3.0)
     result = run_session(
