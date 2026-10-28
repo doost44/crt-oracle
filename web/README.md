@@ -331,6 +331,12 @@ live:
 Without the readout (or without a camera) the Oracle gives no commands. Only words
 and measurements pass between the two windows, never pictures.
 
+**Full screen.** **Full screen** on the start screen and in the row of buttons
+under the conversation (or the F key, except while typing an answer) puts the talk
+page in full screen; press it again or Escape to leave. Every look has it. Inside a
+frame that doesn't allow full screen, the button says to press F11 (Ctrl+Cmd+F on
+a Mac) for the browser's own instead.
+
 Tests: `node web/tests/talk.e2e.js` (Claude and the voices stubbed, answers typed)
 and `node web/tests/talk_readout.e2e.js face.jpg` (both screens, a fake camera
 showing the photo, a scripted "hold still" command checked by the tracker).
@@ -350,6 +356,7 @@ web/
   js/plans.js       the drawing look's turning stack of technical drawings
   js/console.js     the console look's drifting field of tiny glyphs
   js/menu.js        the console and text-mode looks' VCR-style start menu (arrow keys)
+  js/fullscreen.js  the talk pages' Full screen button (and the F key)
   js/grid.js        the character screen: one canvas, a grid of cells
   js/hallway.js     the ASCII hallway drift, and the VHS wobble and edge static
   js/face.js        the painted sun face, lit from the height and sculpt maps

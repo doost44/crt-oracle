@@ -102,9 +102,21 @@ async function run(browser, base, withClaude) {
     await waitIdle();
   };
 
+  const fullScreen = (on) =>
+    page.waitForFunction((on) => !!document.fullscreenElement === on, on, { timeout: 5000 }).catch(() => fail(`full screen did not turn ${on ? "on" : "off"}`));
+  if (withClaude) {
+    await page.click(".start [data-fullscreen]");
+    await fullScreen(true);
+  }
+
   await page.click('.picks button[data-mask="sugar"]');
   await waitIdle();
   if ((await mask()) !== "sugar") fail("did not open as Sugar");
+  if (withClaude) {
+    if ((await page.textContent("#controls [data-fullscreen]")) !== "Exit full screen") fail("the full screen button does not offer to exit");
+    await page.click("#controls [data-fullscreen]");
+    await fullScreen(false);
+  }
   if (!(await page.isVisible("#typed-text"))) fail("no way to answer without a microphone");
   await page.screenshot({ path: path.join(SHOTS, `${withClaude ? "claude" : "offline"}-1-open.png`) });
 
